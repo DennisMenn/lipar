@@ -1,0 +1,57 @@
+# Python caches and packaging
+*.egg-info/
+*.py[cod]
+.eggs/
+__pycache__/
+
+# Build and tooling caches
+.cache/
+.ipynb_checkpoints/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+pip-wheel-metadata/
+
+# Local editor settings
+.idea/
+.vscode/
+
+# Local environments
+.venv/
+ENV/
+env/
+venv/
+
+# Model weights and checkpoints
+Wan2.2-T2V-A14B/
+checkpoints/
+wan_models/
+
+# Generated outputs and local experiments
+eval/
+old_code/
+other_exp/
+output/
+outputs/
+plot/
+src/pipeline/unused/
+src/utils/unused/
+templates/
+test*/
+unused/
+video_editing/
+
+# Local execution scripts
+exe/
+
+# Local-only scripts and utilities
+inf_latent_space_red_wan22.py
+my_utils/
+test.py
+
+# Runtime logs
+*.log
+*.out
+profile.log
