@@ -29,9 +29,9 @@ Latent Inter-frame Pruning with Attention Recovery (LIPAR) is a **training-free*
 LIPAR consists of three parts:
 1. **Latent Inter-frame Pruning**: skip re-computing redundant latent patches.
 2. **Attention Recovery**: reduce train-inference mismatch caused by pruning.
-3. **Restoration**: copy to recover full latent dimensions after denoising.
+3. **Restoration**: For decoding, recover full latent dimensions after denoising.
 
-Empirically, LIPAR improves video editing throughput by **1.45×** on average (from **8.4 FPS** to **12.2 FPS** on A6000) on selected videos while preserving visual quality.
+Empirically, LIPAR improves average video editing throughput by **1.45×** (from **8.4 FPS** to **12.2 FPS** on A6000) on selected videos while preserving visual quality.
 
 ---
 
@@ -94,15 +94,16 @@ python3 inference.py --config_path configs/self_forcing_dmd.yaml \
   --use_lipar
 ```
 
-Original Self-Forcing inference with TAE:
+<!-- Original Self-Forcing inference with TAE:
 ```bash
 python3 inference.py --config_path configs/self_forcing_dmd.yaml \
   --checkpoint_path checkpoints/self_forcing_dmd.pt \
   --data_path data/davis_prompt.json \
   --output_folder outputs/no_prune \
-```
+``` -->
 
 Notes:
+- For original Self-Forcing inference, remove use_lipar flag. 
 - Long, detailed prompts generally perform better.
 
 ---
