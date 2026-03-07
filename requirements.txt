@@ -26,7 +26,7 @@ matplotlib
 sentencepiece
 pydantic==2.10.6
 scikit-image
-huggingface_hub[cli]
+huggingface_hub
 dominate
 nvidia-tensorrt
 pycuda
