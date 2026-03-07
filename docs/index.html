@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Training Free Latent Inter-frame Pruning with Attention Recovery">
+  <meta name="keywords" content="condition video generation, token pruning, video compression">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Training-Free Latent Inter-frame Pruning with Attention Recovery</title>
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/ut_icon.png">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    table {
+      font-family: Arial, sans-serif;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    td, th {
+      border: 1px solid #dddddd;
+      text-align: left;
+      padding: 8px;
+    }
+    th {
+      background-color: #dddddd;
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Training-Free Latent Inter-frame Pruning with Attention Recovery</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://sites.google.com/utexas.edu/dennismenn/about">Dennis Menn</a><sup> 1</sup>,</span>
+            <span class="author-block">
+              <a href="https://scholar.google.com/citations?user=p4pjbpsAAAAJ&hl=en">Yuedong Yang</a><sup> 1</sup>,</span>
+            <span class="author-block">
+              <a href="https://bokun-wang.github.io/">Bokun Wang</a><sup>1</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://xiwenwei.github.io/">Xiwen Wei</a><sup>1</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://www.linkedin.com/in/mustafa-munir-02408/">Mustafa Munir</a><sup>1</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://jeff-liangf.github.io/">Feng Liang</a><sup>2</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://www.ece.utexas.edu/people/faculty/radu-marculescu">Radu Marculescu</a><sup>1</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://www.chenfengx.com/">Chenfeng Xu</a><sup>1</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://www.ece.utexas.edu/people/faculty/diana-marculescu">Diana Marculescu</a><sup>1</sup>
+            </span>
+          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>The University of Texas at Austin,</span>
+            <span class="author-block"><sup>2</sup>Meta GenAI</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="https://drive.google.com/file/d/1a5Oap0lnTgKfnNPWSXIKf8fi7bCgCzSx/view?usp=sharing"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+               <span class="link-block">
+                <a href="sup/sup.html" target="_blank"
+                class="external-link button is-normal is-rounded is-dark">
+                <span class="icon">
+                  <i class="fas fa-file-pdf"></i>
+                </span>
+                <span>Supplementary videos</span>
+              </a>
+            </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <video poster="" id="tree" autoplay controls muted loop style="width: 1200px; max-width: 120%; height: auto; margin-left: -80px;">
+        <source src="./static/images/comparisons/edited.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</section>
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Current video generation models suffer from high computational latency, making real-time applications prohibitively costly. 
+            In this paper, we address this limitation by <span style="color: orange; font-weight:bold">exploiting the temporal redundancy inherent in video latent patches</span>. 
+            To this end, we propose the Latent Inter-frame Pruning with Attention Recovery (LIPAR) framework, 
+            which detects and skips recomputing duplicated latent patches. Additionally, 
+            we introduce a novel <span style="color: orange; font-weight:bold">Attention Recovery</span> that approximates the attention values of pruned tokens, 
+            thereby removing visual artifacts arising from naively applying the pruning method. 
+            Empirically, our method increases video editing throughput by 1.45×, 
+            on average achieving 12.2 FPS on an NVIDIA A6000 compared to the baseline 8.4 FPS. 
+            The proposed method does not compromise generation quality and can seamlessly integrate with the model without additional training. 
+            Our approach effectively bridges the gap between traditional compression algorithms and modern generative pipelines. 
+          </p>
+        </div>
+      </div>
+    </div>
+    </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column is-full">
+
+        <h2 class="title is-3">Motivation</h2>
+        <div class="content has-text-justified">
+          <p>
+          Videos have high temporal and spatial redundancy. Traditional video processing methods save compute and memory by <span style="color: orange; font-weight:bold"> not re-processing similar patches</span>. 
+          Can we use the same techniques in the modern video generation pipeline (latent diffusion model)?
+          </p>
+
+          In the following:
+          <p>1. We first verify that redundancy exists in the latent space.<br>
+          2. We design the Latent Inter-frame with Attention Recovery (LIPAR) framework to fit within the latent diffusion model.<br>
+          3. We propose Attention Recovery to mitigate the train-inference discrepancy incurred by pruning.</p> 
+        </div>
+
+
+        <h2 class="title is-3">Observations</h2>
+        <h3 class="title is-4">Experiment 1: Correlation between pixels and latents change</h3>
+        <div class="content has-text-justified">
+          <p>
+            <strong>Goal:</strong> Calculate the Pearson correlation between the changes of pixels and latents with the same spatial location. <br>
+            $$ \text{Corr}\left(|p_{\text{pixel}}^{(t,x,y)} - p_{\text{pixel}}^{(t+1,x,y)}|, |p_{\text{latent}}^{(t,x,y)} - p_{\text{latent}}^{(t+1,x,y)}|\right) $$
+            <strong>Results:</strong> WAN2.1 VAE: 0.69, WAN2.2 VAE: 0.77 (evaluated on Davis2017 train/val sets)<br>
+            <strong>Meaning:</strong> A strong linear relationship implies if a patch does not change (is redundant) in pixel space, it also does not change in latent space.
+
+          </p>
+          </div>
+        
+        <h3 class="title is-4">Experiment 2: Decoder's Sensitivity to Compression Error</h3>
+        <div class="content has-text-justified">
+          <p><strong>Question:</strong> Is the decoder sensitive to compression error?</p>
+          <p><strong>Experiment:</strong></p>
+          <ol style="margin-left: 2em; margin-bottom: 1em;">
+            <li>
+              Compress the latent by substituting the latent patch with the previous patch if similar:
+              <br>
+              $$\hat{p}_{t+1}^{x,y} = \begin{cases} p_t^{x,y} & \text{if } \|p_{t+1}^{x,y} - p_t^{x,y}\| < \theta \\ p_{t+1}^{x,y} & \text{otherwise} \end{cases}$$
+            </li>
+            <li>
+              Test whether the decoded results are similar for the compressed vs. the original latents, i.e., \(\text{Sim}\left(\text{Dec}(\hat{p}), \text{Dec}(p)\right) > \tau\)
+            </li>
+          </ol>
+          <p><strong>Results:</strong> Compressed 46%, LPIPS &lt; 0.05</p>
+          <p><strong>Meaning:</strong> The VAE is insensitive to the compression error.</p>
+        </div>
+
+        <div class="columns is-centered has-text-centered">
+          <div class="column is-half">
+            <video id="video-kittens-0" autoplay muted loop playsinline width="100%">
+              <source src="./static/images/latent_red/kittens.mp4" type="video/mp4">
+            </video>
+            <p>Compress: 0%</p>
+          </div>
+
+          <div class="column is-half">
+            <video id="video-kittens-34" autoplay muted loop playsinline width="100%">
+              <source src="./static/images/latent_red/kittens_cr66.mp4" type="video/mp4">
+            </video>
+            <p>Compress: 34%</p>
+          </div>
+        </div>
+        
+        <div class="content has-text-justified">
+          <p>
+            These experiments show that latents <span style="color: orange; font-weight:bold">(1) contain redundancy</span> and <span style="color: orange; font-weight:bold">(2) the decoder is insensitive to the compression error</span>, which motivates us to adapt the video compression algorithm in pixel space to the latent space.
+          </p>
+        </div>
+         
+        <h2 class="title is-3">Method</h2>
+        <div class="content has-text-justified">
+
+        <h3 class="title is-4">Overview</h3>
+        <p>
+        We propose LIPAR, a training-free method built on top of the Diffusion Transformer (Self-forcing), 
+        that accelerates video generation and reduces memory usage by exploiting the temporal redundancy in video latent patches across three stages:
+        </p>
+          <div class="container is-max-desktop">
+          <div class="hero-body has-text-centered">
+            <img id="method-overview-img" src="./static/images/methods_overview.png" alt="Method Overview" style="width: 100%; height: auto;">
+          </div>
+          </div>
+      
+      
+          <strong>(1) Latent Inter-frame Pruning:</strong> Removes redundant latent patches before sending to the DiT. \(\|p_{t+1}^{x,y} - p_t^{x,y}\| < \theta\) (Complicated in reality) <br>
+          <strong>(2) Attention Recovery:</strong> Since the model is trained on unpruned latents, we propose Attention Recovery to mitigate the train-inference discrepancy caused by pruning, enabling training-free integration. <br>
+          <strong>(3) Restoration:</strong> We restore the latents dimensions by copying from the corresponding patches in the denoised latents.
+        </div>
+
+        <h3 class="title is-4">Attention Recovery</h3>
+        <div class="content has-text-justified">
+          <p>
+           Pruning latents will result in visual artifacts because when training the DiT, it only sees full-dimensional latents.  
+           Our goal is to approximate the original output values using the pruned input. In the following example, \(x_2\), \(x_3\), and \(x_5\) are pruned.
+          </p>
+        </div>
+      
+
+      <div class="columns">
+      
+      <div class="column is-flex is-flex-direction-column has-text-centered">
+        <div class="is-flex-grow-1 is-flex is-align-items-center is-justify-content-center">
+          <img id="train-inference-diff-img" 
+              src="./static/images/train_inference_diff.svg" 
+              alt="Train-Inference Difference" 
+              style="width: 100%; height: auto;">
+        </div>
+        <p>Train-Inference Difference</p>
+
+      </div>
+
+      <div class="column is-flex is-flex-direction-column has-text-centered">
+        <div class="is-flex-grow-1 is-flex is-align-items-center is-justify-content-center">
+          <img id="attention-recovery-img" 
+              src="./static/images/attention_recovery.png" 
+              alt="Attention Recovery Overview" 
+              style="width: 100%; height: auto;">
+        </div>
+        <p>Attention Recovery Overview</p>
+      </div>
+
+    </div>
+
+        <div class="content has-text-justified">
+          <p>
+            Instead of approximating all attention blocks in the DiT simultaneously, we first approximate a single attention block.  
+            Since the FFN and Cross-attention operate token-wise and are unaffected by pruning, we only need to approximate the output from the Self-attention layer.
+          </p>
+          <p>
+            We separate the approximation into two components: (1) <span style="color: orange; font-weight:bold">signal values</span> (M-degree approximation), and (2) <span style="color: orange; font-weight:bold">noise distributions</span> (Noise-aware duplication).
+          </p>
+          <p>
+            <strong>1. M-degree approximation:</strong> In the following equation, we list the original self-attention calculation on the <strong>left-hand side</strong>. 
+            For LIF pruning, pruning \(x_2\) and \(x_3\) implies that their signal components are similar (\(x_1 \approx x_2 \approx x_3\)). 
+            Therefore, on the <strong>right-hand side</strong>, we can approximate \(x_2\) and \(x_3\) using \(x_1\).
+          </p>
+          <p class="has-text-centered">
+            $$\frac{e^{q^T k_1} v_1 + e^{q^T e^{\theta j} k_2} v_2 + e^{q^T e^{2\theta j} k_3} v_3 + A}{e^{q^T k_1} + e^{q^T e^{\theta j} k_2} + e^{q^T e^{2\theta j} k_3} + B} \approx \frac{(e^{q^T k_1} + e^{q^T e^{\theta j} k_1} + e^{q^T e^{2\theta j} k_1}) v_1 + A}{e^{q^T k_1} + e^{q^T e^{\theta j} k_1} + e^{q^T e^{2\theta j} k_1} + B}$$
+          </p>
+          <p>
+            Where \(e^{\theta j}\) represents the RoPE positional encoding. The sum of \(m\)-largest terms is sufficient to approximate sums of exponentials in the parentheses.
+          </p>
+          <p>
+          <strong>2. Noise-aware duplication:</strong> The noise components of \(x_1\), \(x_2\), and \(x_3\) are i.i.d., hence we cannot assume (\(x_1 \approx x_2 \approx x_3\)). 
+          Instead, we must find a noise-free \(x_1\) (from KV cache or noise filtering) and decide whether to add fresh i.i.d. noise to match their distribution.
+          </p>
+          
+         
+          <p>
+            The acceleration mostly comes from <span style="color: orange; font-weight:bold">generating fewer tokens</span>, as \(x_2\) and \(x_3\) do not need to be regenerated throughout the entire DiT. 
+          </p>
+              
+        </div>
+
+        
+
+        <h2 class="title is-3">LIPAR Highlights</h2>
+
+        <div class="content has-text-justified">
+          <p>
+            <span style="color: orange; font-weight:bold">Use your cursor on the video to slide left/right for the video.</span> The edited keyword and prune rate is marked as <span style="color: rgb(47, 137, 11)">green.</span>
+            You may also want to check comparisons with <a href="sup/sup.html#comparisons-to-existing-real-time-low-latency-v2v-models">other models</a>, <a href="sup/sup.html#comparisons-with-training-free-pruning-methods">other pruning methods</a>, <a href="sup/sup.html#attention-recovery">ablation study</a>, and <a href="sup/sup.html#visualizations-with-Time-to-move-integration">extention to TTM</a>.
+          </p>
+        </div>    
+
+        <div>
+          <video class="video" id="Teaser2" width="100%" loop playsinline autoPlay muted src="./static/images/comparisons/input-video.mp4" onplay="resizeAndPlay(this)"></video>
+          <canvas width="150" height="150" class="videoMerge" id="Teaser2Merge"></canvas>
+        </div>
+         <p class="has-text-centered">
+          <span style="color:rgb(0, 0, 0); font-weight:bold">Input videos, left: original video, right: pruned (gray region) latents.</span>
+        </p>
+        
+        <div>
+          <video class="video" id="Teaser3" width="100%" loop playsinline autoPlay muted src="./static/images/comparisons/edited.mp4" onplay="resizeAndPlay(this)"></video>
+          <canvas width="150" height="150" class="videoMerge" id="Teaser3Merge"></canvas>
+        </div>
+         <p class="has-text-centered">
+          <span style="color: rgb(0, 0, 0); font-weight:bold">Edited results, left: Self-forcing, right: LIPAR.</span>
+        </p>
+          
+        <br>
+
+        <h2 class="title is-3">Quantitative Evaluations</h2>
+
+        <div class="content has-text-justified">
+          <p>
+            We evaluate our method on 51 video-prompt pairs. For the full evaluation results, please see <a href="https://drive.google.com/drive/folders/1K80i7D8Hu1_isOJ2uquiOieCV_mrAif7?usp=sharing">this link</a>.
+            The human evaluation test is performed by 14 participants, throughput and memory usage is evaluated on the entire dataset and on an A6000 GPU.  
+            Compared with the baseline (Self-forcing), LIPAR achieves 1.45× speedup, and 29% memory reduction while maintaining 86.7% win-tie rate. 
+          </p>
+          </p>
+        </div>    
+
+
+<div style="width: 120%; max-width: 1600px; padding: 0 20px; margin-left: -5%;">
+  
+  <div class="columns is-centered is-vcentered is-variable is-0">
+    
+    <div class="column" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <img src="./static/images/evaluation/quality.svg" alt="Quality Evaluation" style="width: 100%; height: auto;">
+      <p class="has-text-centered" style="margin-top: 10px;"></p>
+    </div>
+
+    <div class="column" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <img src="./static/images/evaluation/throughput.svg" alt="Throughput Evaluation" style="width: 100%; height: auto;">
+      <p class="has-text-centered" style="margin-top: 10px;"></p>
+    </div>
+
+    <div class="column" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <img src="./static/images/evaluation/memory.svg" alt="Memory Evaluation" style="width: 80%; height: auto;">
+      <p class="has-text-centered" style="margin-top: 10px;"></p>
+    </div>
+
+  </div>
+</div>
+
+
+SD: StreamDiffusion, SF: Self-Forcing, SV2V: StreamV2V, Control: ControlVideo.
+    
+    <div class="column is-full">
+      <br>
+      <h2 class="title is-3">Limitations</h2>
+      <p>
+       For videos with camera motion, LIPAR achieves less acceleration due to the reduction of redundant patches.
+      </p>
+    </div>
+      
+</section>
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This website is licensed under a <a rel="license"
+                                                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+          <p>
+            Thanks to <a href="https://jeff-liangf.github.io/projects/flowvid/">FlowVid</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

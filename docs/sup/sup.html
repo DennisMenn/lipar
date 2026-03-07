@@ -1,0 +1,924 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'><style type='text/css'>html {overflow-x: initial !important;}</style>
+<style type='text/css'  id="style-base">:root { --bg-color: #ffffff; --text-color: #333333; --select-text-bg-color: #B5D6FC; --select-text-font-color: auto; --monospace: "Lucida Console",Consolas,"Courier",monospace; --title-bar-height: 20px; }
+.mac-os-11 { --title-bar-height: 28px; }
+html { font-size: 14px; background-color: var(--bg-color); color: var(--text-color); font-family: "Helvetica Neue", Helvetica, Arial, "Segoe UI Emoji", "SF Pro", sans-serif; -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4, h5 { white-space: pre-wrap; }
+body { margin: 0px; padding: 0px; height: auto; inset: 0px; font-size: 1rem; line-height: 1.428571; overflow-x: hidden; background: inherit; }
+iframe { margin: auto; }
+a.url { word-break: break-all; }
+a:active, a:hover { outline: 0px; }
+.in-text-selection, ::selection { text-shadow: none; background: var(--select-text-bg-color); color: var(--select-text-font-color); }
+#write { margin: 0px auto; height: auto; width: inherit; word-break: normal; overflow-wrap: break-word; position: relative; white-space: normal; overflow-x: visible; padding-top: 36px; }
+#write.first-line-indent p { text-indent: 2em; }
+#write.first-line-indent li p, #write.first-line-indent p *, #write.first-line-indent svg * { text-indent: 0px; }
+#write.first-line-indent li { margin-left: 2em; }
+.for-image #write { padding-left: 8px; padding-right: 8px; }
+body.typora-export { padding-left: 30px; padding-right: 30px; }
+.typora-export .footnote-line, .typora-export li, .typora-export p { white-space: pre-wrap; }
+.typora-export .task-list-item input { pointer-events: none; }
+@media screen and (max-width: 500px) {
+  body.typora-export { padding-left: 0px; padding-right: 0px; }
+  #write { padding-left: 20px; padding-right: 20px; }
+}
+#write li > figure:last-child { margin-bottom: 0.5rem; }
+#write ol, #write ul { position: relative; }
+img { max-width: 100%; vertical-align: middle; image-orientation: from-image; }
+button, input, select, textarea { color: inherit; font-style: inherit; font-variant-caps: inherit; font-weight: inherit; font-width: inherit; font-size: inherit; line-height: inherit; font-family: inherit; font-size-adjust: inherit; font-kerning: inherit; font-variant-alternates: inherit; font-variant-ligatures: inherit; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-feature-settings: inherit; font-optical-sizing: inherit; font-variation-settings: inherit; }
+input[type="checkbox"], input[type="radio"] { line-height: normal; padding: 0px; }
+*, ::after, ::before { box-sizing: border-box; }
+#write h1, #write h2, #write h3, #write h4, #write h5, #write h6, #write p, #write pre { width: inherit; position: relative; }
+#write svg h1, #write svg h2, #write svg h3, #write svg h4, #write svg h5, #write svg h6, #write svg p { position: static; }
+svg sub, svg sup { position: static; }
+.nodeLabel p { padding-right: 2px; padding-left: 2px; }
+.typora-export .nodeLabel p { padding-right: 0px; padding-left: 0px; }
+foreignObject { overflow: visible; }
+p { line-height: inherit; }
+h1, h2, h3, h4, h5, h6 { break-after: avoid-page; break-inside: avoid; orphans: 4; }
+p { orphans: 4; }
+li p { orphans: 1; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.6rem; }
+h4 { font-size: 1.4rem; }
+h5 { font-size: 1.2rem; }
+h6 { font-size: 1rem; }
+.md-math-block, .md-rawblock, h1, h2, h3, h4, h5, h6, p { margin-top: 1rem; margin-bottom: 1rem; }
+.hidden { display: none; }
+.md-blockmeta { color: rgb(204, 204, 204); font-weight: 700; font-style: italic; }
+a { cursor: pointer; }
+sup.md-footnote { padding: 2px 4px; background-color: rgba(238, 238, 238, 0.7); color: rgb(85, 85, 85); border-radius: 4px; cursor: pointer; }
+sup.md-footnote a, sup.md-footnote a:hover { color: inherit; text-transform: inherit; text-decoration: inherit; }
+#write input[type="checkbox"] { cursor: pointer; width: inherit; height: inherit; }
+figure { overflow-x: auto; margin: 1.2em 0px; max-width: calc(100% + 16px); padding: 0px; }
+figure > table { margin: 0px; }
+thead, tr { break-inside: avoid; break-after: auto; }
+thead { display: table-header-group; }
+table { border-collapse: collapse; border-spacing: 0px; width: 100%; overflow: auto; break-inside: auto; text-align: left; }
+table.md-table td { min-width: 32px; }
+.CodeMirror-gutters { border-right-width: 0px; border-right-style: none; border-right-color: currentcolor; background-color: inherit; }
+.CodeMirror-linenumber { -webkit-user-select: none; }
+.CodeMirror { text-align: left; }
+.CodeMirror-placeholder { opacity: 0.3; }
+.CodeMirror pre { padding: 0px 4px; }
+.CodeMirror-lines { padding: 0px; }
+div.hr:focus { cursor: none; }
+#write pre { white-space: pre-wrap; }
+#write.fences-no-line-wrapping pre { white-space: pre; }
+#write pre.ty-contain-cm { white-space: normal; }
+.CodeMirror-gutters { margin-right: 4px; }
+.md-fences { font-size: 0.9rem; display: block; break-inside: avoid; text-align: left; overflow: visible; white-space: pre; background: inherit; position: relative !important; }
+.md-fences-adv-panel { width: 100%; margin-top: 10px; text-align: center; padding-top: 0px; padding-bottom: 8px; overflow-x: auto; }
+#write .md-fences.mock-cm { white-space: pre-wrap; }
+.md-fences.md-fences-with-lineno { padding-left: 0px; }
+#write.fences-no-line-wrapping .md-fences.mock-cm { white-space: pre; overflow-x: auto; }
+.md-fences.mock-cm.md-fences-with-lineno { padding-left: 8px; }
+.CodeMirror-line, twitterwidget { break-inside: avoid; }
+svg { break-inside: avoid; }
+.footnotes { opacity: 0.8; font-size: 0.9rem; margin-top: 1em; margin-bottom: 1em; }
+.footnotes + .footnotes { margin-top: 0px; }
+.md-reset { margin: 0px; padding: 0px; border: 0px; outline: 0px; vertical-align: top; background: 0px 0px; text-decoration: none; text-shadow: none; float: none; position: static; width: auto; height: auto; white-space: nowrap; cursor: inherit; line-height: normal; font-weight: 400; text-align: left; box-sizing: content-box; direction: ltr; }
+li div { padding-top: 0px; }
+blockquote { margin: 1rem 0px; }
+li .mathjax-block, li p { margin: 0.5rem 0px; }
+li blockquote { margin: 1rem 0px; }
+li { margin: 0px; position: relative; }
+blockquote > :last-child { margin-bottom: 0px; }
+blockquote > :first-child, li > :first-child { margin-top: 0px; }
+.footnotes-area { color: rgb(136, 136, 136); margin-top: 0.714rem; padding-bottom: 0.143rem; white-space: normal; }
+#write .footnote-line { white-space: pre-wrap; }
+@media print {
+  body, html { border: 1px solid transparent; height: 99%; break-after: avoid; break-before: avoid; font-variant-ligatures: no-common-ligatures; }
+  #write { margin-top: 0px; border-color: transparent !important; padding-top: 0px !important; padding-bottom: 0px !important; }
+  .typora-export * { print-color-adjust: exact; }
+  .typora-export #write { break-after: avoid; }
+  .typora-export #write::after { height: 0px; }
+  .is-mac table { break-inside: avoid; }
+  #write > p:nth-child(1) { margin-top: 0px; }
+  .typora-export-show-outline .typora-export-sidebar { display: none; }
+  figure { overflow-x: visible; }
+}
+.footnote-line { margin-top: 0.714em; font-size: 0.7em; }
+a img, img a { cursor: pointer; }
+pre.md-meta-block { font-size: 0.8rem; min-height: 0.8rem; white-space: pre-wrap; background: rgb(204, 204, 204); display: block; overflow-x: hidden; }
+p > .md-image:only-child:not(.md-img-error) img, p > img:only-child { display: block; margin: auto; }
+#write.first-line-indent p > .md-image:only-child:not(.md-img-error) img { left: -2em; position: relative; }
+p > .md-image:only-child { display: inline-block; width: 100%; }
+#write .MathJax_Display { margin: 0.8em 0px 0px; }
+.md-math-block { width: 100%; }
+.md-math-block:not(:empty)::after { display: none; }
+.MathJax_ref { fill: currentcolor; }
+[contenteditable="true"]:active, [contenteditable="true"]:focus, [contenteditable="false"]:active, [contenteditable="false"]:focus { outline: 0px; box-shadow: none; }
+.md-task-list-item { position: relative; list-style-type: none; }
+.task-list-item.md-task-list-item { padding-left: 0px; }
+.md-task-list-item > input { position: absolute; top: 0px; left: 0px; margin-left: -1.2em; margin-top: calc(1em - 10px); border: medium; }
+.math { font-size: 1rem; }
+.md-toc { min-height: 3.58rem; position: relative; font-size: 0.9rem; border-radius: 10px; }
+.md-toc-content { position: relative; margin-left: 0px; }
+.md-toc-content::after, .md-toc::after { display: none; }
+.md-toc-item { display: block; color: rgb(65, 131, 196); }
+.md-toc-item a { text-decoration: none; }
+.md-toc-inner:hover { text-decoration: underline; }
+.md-toc-inner { display: inline-block; cursor: pointer; }
+.md-toc-h1 .md-toc-inner { margin-left: 0px; font-weight: 700; }
+.md-toc-h2 .md-toc-inner { margin-left: 2em; }
+.md-toc-h3 .md-toc-inner { margin-left: 4em; }
+.md-toc-h4 .md-toc-inner { margin-left: 6em; }
+.md-toc-h5 .md-toc-inner { margin-left: 8em; }
+.md-toc-h6 .md-toc-inner { margin-left: 10em; }
+@media screen and (max-width: 48em) {
+  .md-toc-h3 .md-toc-inner { margin-left: 3.5em; }
+  .md-toc-h4 .md-toc-inner { margin-left: 5em; }
+  .md-toc-h5 .md-toc-inner { margin-left: 6.5em; }
+  .md-toc-h6 .md-toc-inner { margin-left: 8em; }
+}
+a.md-toc-inner { font-size: inherit; font-style: inherit; font-weight: inherit; line-height: inherit; }
+.footnote-line a:not(.reversefootnote) { color: inherit; }
+.reversefootnote { font-family: ui-monospace, sans-serif; }
+.md-attr { display: none; }
+.md-fn-count::after { content: "."; }
+code, pre, samp, tt { font-family: var(--monospace); }
+kbd { margin: 0px 0.1em; padding: 0.1em 0.6em; font-size: 0.8em; color: rgb(36, 39, 41); background: rgb(255, 255, 255); border: 1px solid rgb(173, 179, 185); border-radius: 3px; box-shadow: rgba(12, 13, 14, 0.2) 0px 1px 0px, rgb(255, 255, 255) 0px 0px 0px 2px inset; white-space: nowrap; vertical-align: middle; }
+.md-comment { color: rgb(162, 127, 3); opacity: 0.6; font-family: var(--monospace); }
+code { text-align: left; vertical-align: initial; }
+a.md-print-anchor { white-space: pre !important; border-width: medium !important; border-style: none !important; border-color: currentcolor !important; display: inline-block !important; position: absolute !important; width: 1px !important; right: 0px !important; outline: 0px !important; background: 0px 0px !important; text-decoration: initial !important; text-shadow: initial !important; }
+.os-windows.monocolor-emoji .md-emoji { font-family: "Segoe UI Symbol", sans-serif; }
+.md-diagram-panel > svg { max-width: 100%; }
+[lang="flow"] svg, [lang="mermaid"] svg { max-width: 100%; height: auto; }
+[lang="mermaid"] .node text { font-size: 1rem; }
+table tr th { border-bottom-width: 0px; border-bottom-style: none; border-bottom-color: currentcolor; }
+video { max-width: 100%; display: block; margin: 0px auto; }
+iframe { max-width: 100%; width: 100%; border: medium; }
+.highlight td, .highlight tr { border: 0px; }
+mark { background: rgb(255, 255, 0); color: rgb(0, 0, 0); }
+.md-html-inline .md-plain, .md-html-inline strong, mark .md-inline-math, mark strong { color: inherit; }
+.md-expand mark .md-meta { opacity: 0.3 !important; }
+mark .md-meta { color: rgb(0, 0, 0); }
+@media print {
+  .typora-export h1, .typora-export h2, .typora-export h3, .typora-export h4, .typora-export h5, .typora-export h6 { break-inside: avoid; }
+}
+.md-diagram-panel .messageText { stroke: none !important; }
+.md-diagram-panel .start-state { fill: var(--node-fill); }
+.md-diagram-panel .edgeLabel rect { opacity: 1 !important; }
+.md-fences.md-fences-math { font-size: 1em; }
+.md-fences-advanced:not(.md-focus) { padding: 0px; white-space: nowrap; border: 0px; }
+.md-fences-advanced:not(.md-focus) { background: inherit; }
+.mermaid-svg { margin: auto; }
+.typora-export-show-outline .typora-export-content { max-width: 1440px; margin: auto; display: flex; flex-direction: row; }
+.typora-export-sidebar { width: 300px; font-size: 0.8rem; margin-top: 80px; margin-right: 18px; }
+.typora-export-show-outline #write { --webkit-flex: 2; flex: 2 1 0%; }
+.typora-export-sidebar .outline-content { position: fixed; top: 0px; max-height: 100%; overflow: hidden auto; padding-bottom: 30px; padding-top: 60px; width: 300px; }
+@media screen and (max-width: 1024px) {
+  .typora-export-sidebar, .typora-export-sidebar .outline-content { width: 240px; }
+}
+@media screen and (max-width: 800px) {
+  .typora-export-sidebar { display: none; }
+}
+.outline-content li, .outline-content ul { margin-left: 0px; margin-right: 0px; padding-left: 0px; padding-right: 0px; list-style: none; overflow-wrap: anywhere; }
+.outline-content ul { margin-top: 0px; margin-bottom: 0px; }
+.outline-content strong { font-weight: 400; }
+.outline-expander { width: 1rem; height: 1.428571rem; position: relative; display: table-cell; vertical-align: middle; cursor: pointer; padding-left: 4px; }
+.outline-expander::before { content: ""; position: relative; font-family: Ionicons; display: inline-block; font-size: 8px; vertical-align: middle; }
+.outline-item { padding-top: 3px; padding-bottom: 3px; cursor: pointer; }
+.outline-expander:hover::before { content: ""; }
+.outline-h1 > .outline-item { padding-left: 0px; }
+.outline-h2 > .outline-item { padding-left: 1em; }
+.outline-h3 > .outline-item { padding-left: 2em; }
+.outline-h4 > .outline-item { padding-left: 3em; }
+.outline-h5 > .outline-item { padding-left: 4em; }
+.outline-h6 > .outline-item { padding-left: 5em; }
+.outline-label { cursor: pointer; display: table-cell; vertical-align: middle; text-decoration: none; color: inherit; }
+.outline-label:hover { text-decoration: underline; }
+.outline-item:hover { border-color: rgb(245, 245, 245); background-color: var(--item-hover-bg-color); }
+.outline-item:hover { margin-left: -28px; margin-right: -28px; border-left-width: 28px; border-left-style: solid; border-left-color: transparent; border-right-width: 28px; border-right-style: solid; border-right-color: transparent; }
+.outline-item-single .outline-expander::before, .outline-item-single .outline-expander:hover::before { display: none; }
+.outline-item-open > .outline-item > .outline-expander::before { content: ""; }
+.outline-children { display: none; }
+.info-panel-tab-wrapper { display: none; }
+.outline-item-open > .outline-children { display: block; }
+.typora-export .outline-item { padding-top: 1px; padding-bottom: 1px; }
+.typora-export .outline-item:hover { margin-right: -8px; border-right-width: 8px; border-right-style: solid; border-right-color: transparent; }
+.typora-export .outline-expander::before { content: "+"; font-family: inherit; top: -1px; }
+.typora-export .outline-expander:hover::before, .typora-export .outline-item-open > .outline-item > .outline-expander::before { content: "−"; }
+.typora-export-collapse-outline .outline-children { display: none; }
+.typora-export-collapse-outline .outline-item-open > .outline-children, .typora-export-no-collapse-outline .outline-children { display: block; }
+.typora-export-no-collapse-outline .outline-expander::before { content: "" !important; }
+.typora-export-show-outline .outline-item-active > .outline-item .outline-label { font-weight: 700; }
+.md-inline-math-container mjx-container { zoom: 0.95; }
+mjx-container { break-inside: avoid; }
+.md-alert.md-alert-note { border-left-color: rgb(9, 105, 218); }
+.md-alert.md-alert-important { border-left-color: rgb(130, 80, 223); }
+.md-alert.md-alert-warning { border-left-color: rgb(154, 103, 0); }
+.md-alert.md-alert-tip { border-left-color: rgb(31, 136, 61); }
+.md-alert.md-alert-caution { border-left-color: rgb(207, 34, 46); }
+.md-alert { padding: 0px 1em; margin-bottom: 16px; color: inherit; border-left-width: 0.25em; border-left-style: solid; border-left-color: rgb(0, 0, 0); }
+.md-alert-text-note { color: rgb(9, 105, 218); }
+.md-alert-text-important { color: rgb(130, 80, 223); }
+.md-alert-text-warning { color: rgb(154, 103, 0); }
+.md-alert-text-tip { color: rgb(31, 136, 61); }
+.md-alert-text-caution { color: rgb(207, 34, 46); }
+.md-alert-text { font-size: 0.9rem; font-weight: 700; }
+.md-alert-text svg { fill: currentcolor; position: relative; top: 0.125em; margin-right: 1ch; overflow: visible; }
+.md-alert-text-container::after { content: attr(data-text); text-transform: capitalize; pointer-events: none; margin-right: 1ch; }
+
+</style>
+<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Didact+Gothic&amp;display=swap&amp;subset=cyrillic,cyrillic-ext,greek,greek-ext,latin-ext' type='text/css' />
+<style type='text/css'  id="style-theme_css">@include-when-export url(https://fonts.googleapis.com/css?family=Didact+Gothic&display=swap&subset=cyrillic,cyrillic-ext,greek,greek-ext,latin-ext);
+
+/* cyrillic-ext */
+/* cyrillic */
+:root {
+	--window-border: none;
+	--typora-center-window-title: true;
+	--active-file-bg-color: #f3f3f3;
+	--bg-color: #fcfcfc;
+	--control-text-color: #777;
+}
+
+.mac-seamless-mode #typora-sidebar {
+	top: 20px;
+	padding-top: 0;
+	height: auto;
+}
+
+html,
+body {
+	background: #fcfcfc;
+	background: var(--bg-color);
+	font-family: 'TeXGyreAdventor', "Century Gothic", "Didact Gothic", "Yu Gothic", 'Segoe UI Emoji', 'SF Pro', sans-serif;
+	font-weight: 300;
+	-webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	color: #111;
+	font-family: 'TeXGyreAdventor', "Century Gothic", "Didact Gothic", "Yu Gothic", sans-serif;
+}
+
+html {
+	font-size:16px;
+}
+
+#write {
+	max-width: 914px;
+	text-align: justify;
+}
+
+@media only screen and (min-width: 1400px) {
+	#write {
+		max-width: 1024px;
+	}
+}
+
+#write>h1:first-child {
+	margin-top: 2.75rem;
+}
+#write>h2:first-child {
+	margin-top: 1.75rem;
+}
+#write>h3:first-child {
+	margin-top: 1rem;
+}
+#write>h4:first-child {
+	margin-top: 0.5rem;
+}
+h1 {
+	font-weight: normal;
+	line-height: 4rem;
+	margin: 0 0 1.75rem;
+	padding: 20px 30px;
+	text-align: center;
+	text-transform: uppercase;
+	margin-top: 4rem;
+}
+h2 {
+	font-weight: normal;
+	line-height: 3rem;
+	margin: 0 0 1.9375rem;
+	padding: 0 30px;
+	text-align: center;
+	text-transform: uppercase;
+	margin-top: 3rem
+}
+h3 {
+	font-weight: normal;
+}
+h4 {
+	font-weight: normal;
+}
+h5 {
+	font-size: 1.125rem;
+	font-weight: normal;
+}
+h6 {
+	font-size: 1rem;
+	font-weight: bold;
+}
+p {
+	color: #111;
+	font-size: 1rem;
+	line-height: 1.75rem;
+	margin: 0 0 1.25rem;
+}
+#write>h3.md-focus:before {
+	left: -1.875rem;
+	top: 0.5rem;
+	padding: 2px;
+}
+#write>h4.md-focus:before {
+	left: -1.875rem;
+	top: 0.3125rem;
+	padding: 2px;
+}
+#write>h5.md-focus:before {
+	left: -1.875rem;
+	top: 0.25rem;
+	padding: 2px;
+}
+#write>h6.md-focus:before {
+	left: -1.875rem;
+	top: .125rem;
+	padding: 2px;
+}
+@media screen and (max-width: 48em) {
+	blockquote {
+		margin-left: 1rem;
+		margin-right: 0;
+		padding: 0.5em;
+	}
+	.h1,
+	h1 {
+		font-size: 2.827rem;
+	}
+	.h2,
+	h2 {
+		font-size: 1.999rem;
+	}
+	.h3,
+	h3 {
+		font-size: 1.413rem;
+	}
+	.h4,
+	h4 {
+		font-size: 1.250rem;
+	}
+	.h5,
+	h5 {
+		font-size: 1.150rem;
+	}
+	.h6,
+	h6 {
+		font-size: 1rem;
+	}
+}
+a,
+.md-def-url {
+	color: #990000;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+table {
+	margin-bottom: 20px
+}
+table th,
+table td {
+	padding: 8px;
+	line-height: 1.25rem;
+	vertical-align: top;
+	border-top: 1px solid #ddd
+}
+table th {
+	font-weight: bold
+}
+table thead th {
+	vertical-align: bottom
+}
+table caption+thead tr:first-child th,
+table caption+thead tr:first-child td,
+table colgroup+thead tr:first-child th,
+table colgroup+thead tr:first-child td,
+table thead:first-child tr:first-child th,
+table thead:first-child tr:first-child td {
+	border-top: 0
+}
+table tbody+tbody {
+	border-top: 2px solid #ddd
+}
+code, .md-fences {
+	padding: .5em;
+	/*background: #f0f0f0;*/
+	border: 1px solid #ccc;
+	padding: .1em;
+	font-size: 0.9em;
+	margin-left: 0.2em;
+	margin-right: 0.2em;
+}
+.md-fences {
+	margin: 0 0 20px;
+	font-size: 1em;
+	padding: 0.3em 1em;
+  	padding-top: 0.4em;
+}
+.task-list{
+	padding-left: 0;
+}
+
+.task-list-item {
+	padding-left:2.125rem;
+}
+
+input {
+	border-style: ridge;
+}
+
+.task-list-item input {
+	top: 3px;
+}
+
+.md-task-list-item input {
+	margin-left: -1.5em;
+}
+
+.task-list-item input:before {
+	content: "";
+	display: inline-block;
+	width: 1rem;
+	height: 1rem;
+	vertical-align: middle;
+	text-align: center;
+	border: 1px solid gray;
+	background-color: #fdfdfd;
+	margin-left: 0;
+	-webkit-appearance: none;
+	margin-top: -1rem;
+}
+
+.typora-node .task-list-item input:before {
+	top: 0.3ex;
+	position: absolute;
+}
+
+.task-list-item input:checked:before,
+.task-list-item input[checked]:before{
+	content: '\25FC';
+	/*◘*/
+	font-size: 0.8125rem;
+	line-height: 0.9375rem;
+}
+
+/* Chrome 29+ */
+.task-list-item input:before {
+	margin-top: -0.2rem;
+}
+
+.task-list-item input:checked:before,
+.task-list-item input[checked]:before {
+	margin-top: -0.2rem;
+}
+
+.html-for-mac .task-list-item input:checked:before,
+.html-for-mac .task-list-item input[checked]:before {
+	margin-top: -0.8rem;
+}
+
+blockquote {
+	margin: 0 0 1.11111rem;
+	padding: 0.5rem 1.11111rem 0 1.05556rem;
+	border-left: 1px solid gray;
+}
+blockquote,
+blockquote p {
+	line-height: 1.6;
+	color: #6f6f6f;
+}
+#write pre.md-meta-block {
+	min-height: 30px;
+	background: #f8f8f8;
+	padding: 1.5em;
+	font-weight: 300;
+	font-size: 1em;
+	padding-bottom: 1.5em;
+	padding-top: 3em;
+    margin-top: -1.5em;
+	color: #999;
+	
+	width: 100vw;
+	max-width: calc(100% + 60px);
+	margin-left: -30px;
+	border-left: 30px #f8f8f8 solid;
+	border-right: 30px #f8f8f8 solid;
+}
+.MathJax_Display {
+	font-size: 0.9em;
+	margin-top: 0.5em;
+	margin-bottom: 0;
+}
+p.mathjax-block,
+.mathjax-block {
+	padding-bottom: 0;
+}
+.mathjax-block>.code-tooltip {
+	bottom: 5px;
+	box-shadow: none;
+}
+.md-image>.md-meta {
+	padding-left: 0.5em;
+	padding-right: 0.5em;
+}
+.md-image>img {
+	margin-top: 2px;
+}
+.md-image>.md-meta:first-of-type:before {
+	padding-left: 4px;
+}
+
+#typora-source {
+	color: #555;
+}
+
+/** ui for windows **/
+#md-searchpanel {
+    border-bottom: 1px solid #ccc;
+}
+
+#md-searchpanel .btn {
+    border: 1px solid #ccc;
+}
+
+#md-notification:before {
+	top: 14px;
+}
+
+#md-notification-container {
+	background: #eee;
+}
+
+.megamenu-menu-panel .btn {
+	border: 1px solid #ccc;
+}
+
+#typora-sidebar {
+	box-shadow: none;
+}
+
+.file-list-item ,
+.show-folder-name .file-list-item {
+	padding-top: 20px;
+	padding-bottom: 20px;
+	line-height: 20px;
+}
+
+.file-list-item-summary {
+	height: 40px;
+	line-height: 20px;
+}
+
+.ty-table-edit {
+	background: #ededed;
+}
+
+.dropdown-menu .divider {
+	border-color: #e5e5e5;
+}</style>
+<style type='text/css'  id="style-lp">ol, ul {padding-left: 40px}</style>
+<style type='text/css'  id="style-mac-print"> @media print { @page {margin: 0 0 0 0;} body.typora-export {padding-left: 0; padding-right: 0;} #write {padding:0;}}</style>
+
+<title>sup</title>
+<style>
+  /* 1. Allow the page to be wider to fit larger videos */
+  #write {
+      max-width: 90% !important; /* Uses 85% of your screen width */
+  }
+
+  /* 2. (Optional) Force specific video size via CSS instead of changing every tag */
+  video {
+      width: 480px !important; /* Adjust this number as needed */
+  }
+</style>
+</head>
+<body class='typora-export'><div class='typora-export-content'>
+<div id='write'  class=''><h1 id='latent-inter-frame-pruning-exploiting-temporal-redundancy-for-variable-length-conditioned-video-generation'><span>Training-free Latent Inter-Frame Pruning with Attention Recovery </span></h1><p><span>Supplementary Material</span></p><div class='md-toc' mdtype='toc'><p class="md-toc-content" role="list"><span role="listitem" class="md-toc-item md-toc-h1" data-ref="n2122"><a class="md-toc-inner" href="#latent-inter-frame-pruning-exploiting-temporal-redundancy-for-variable-length-conditioned-video-generation">Training-free Latent Inter-Frame Pruning with Attention Recovery </a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n2126"><a class="md-toc-inner" href="#comparisons-to-existing-real-time-low-latency-v2v-models">Comparisons to Existing Real-Time (Low Latency) V2V Models</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n2159"><a class="md-toc-inner" href="#comparisons-with-training-free-pruning-methods">Comparisons with Training-free Pruning Methods</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n2170"><a class="md-toc-inner" href="#attention-recovery">Effectiveness of Attention Recovery</a></span><span role="listitem" class="md-toc-item md-toc-h2"><a class="md-toc-inner" href="#visualizations-with-Time-to-move-integration">Visualizations with Time-to-move Integration</a></span><span role="listitem" class="md-toc-item md-toc-h2" data-ref="n2182"><a class="md-toc-inner" href="#reference">Reference</a></span></p></div><h2 id='comparisons-to-existing-real-time-low-latency-v2v-models'><span>Comparisons to Existing Real-Time (Low Latency) V2V Models</span></h2><p><span>Our method significantly increases the throughput of the base model (Self-Forcing </span><a href="#ref-1"><span>[1]</span></a><span>) for real-time video editing while maintaining the visual quality and temporal consistency of edited videos.</span>
+</table></li><li><p><em><strong><span>Three corgi puppies sharing a meal together on a kitchen floor.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 33.8% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/input/corgi.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/LIPAR/corgi.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/self_forcing/corgi.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/streamv2v/corgi.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/streamdiffusion/corgi.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/control_video/corgi.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>Three majestic lions huddled together feasting on a meal.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 33.8% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/input/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/LIPAR/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/self_forcing/three_lions.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/streamv2v/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/streamdiffusion/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="320" src="./assets/diff_models/control_video/three_lions.mp4" /></td>
+  </tr>
+  </table></li><li><p><em><strong><span>A beautiful blonde woman with blue eyes wearing is performing the moonwalk. Simple dark background.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 21.3% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/woman_walk.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamv2v/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamdiffusion/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/control_video/woman_walk.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>Two cute, fluffy penguins wearing winter scarves waddling across a frozen ice path in Antarctica.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 52.9% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/penguin.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamv2v/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamdiffusion/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/control_video/penguin.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>A old man with white beard is holding and interacting with mysterious rock that has a small tree growing on it. Natural lighting, domestic interior background.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 19.1% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/old_man.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/old_man.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/old_man.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamv2v/old_man.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamdiffusion/old_man.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/control_video/old_man.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>A woman wearing a black leather jacket riding a motorcycle while stretching her arms out joyfully. Realistic cinematic style, wind blowing through hair, blurred asphalt road beneath to imply speed.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 20.7% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/woman_biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/woman_biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/woman_biker.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamv2v/woman_biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamdiffusion/woman_biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/control_video/woman_biker.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>A young anime protagonist riding a sleek bike with arms outstretched.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 20.7% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/biker.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamv2v/biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamdiffusion/biker.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/control_video/biker.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>Anime style animation of a frog dancing and performing acrobatic side somersaults. Vibrant cel-shaded colors.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 16.8% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/frog.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/frog.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/frog.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamv2v/frog.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamdiffusion/frog.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/control_video/frog.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>A majestic lion is turning its head to look around in a field.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 11.9% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/lion.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/lion.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/lion.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">StreamV2V <a href="#ref-2">[2]</a></th>
+    <th align="center">StreamDiffusion <a href="#ref-3">[3]</a></th>
+    <th align="center">ControlVideo <a href="#ref-4">[4]</a></th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamv2v/lion.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/streamdiffusion/lion.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/control_video/lion.mp4" /></td>
+  </tr>
+</table></li></ul><h2 id='comparisons-with-training-free-pruning-methods'><span>Comparisons with Other Training-free Pruning Methods</span></h2><p>
+    We compare our LIPAR pruning method against representative training-free pruning methods, including ToMe <a href="#ref-5">[5]</a>, Importance-based <a href="#ref-6">[6]</a>, and IDM <a href="#ref-7">[7]</a>, implemented on the Self-Forcing model, as shown below.
+</p><ul><li><p><em><strong><span>Three majestic lions huddled together feasting on a meal.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 33.8% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a> - No Pruning</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/three_lions.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">ToMe <a href="#ref-5">[5]</a> - 32% Pruned</th>
+    <th align="center">Importance-based <a href="#ref-6">[6]</a> - 32% Pruned</th>
+    <th align="center">IDM <a href="#ref-7">[7]</a> - 32% Pruned</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/tome/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/importance_based/three_lions.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/idm/three_lions.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>A beautiful blonde woman with blue eyes wearing is performing the moonwalk. Simple dark background.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 31.6% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a> - No Pruning</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/woman_walk.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">ToMe <a href="#ref-5">[5]</a> - 32% Pruned</th>
+    <th align="center">Importance-based <a href="#ref-6">[6]</a> - 32% Pruned</th>
+    <th align="center">IDM <a href="#ref-7">[7]</a> - 32% Pruned</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/tome/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/importance_based/woman_walk.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/idm/woman_walk.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>Two cute, fluffy penguins wearing winter scarves waddling across a frozen ice path in Antarctica.</span></strong></em></p><table>
+  <tr>
+    <th align="center">Input Video</th>
+    <th align="center">LIPAR (Ours) - 52.9% Pruned</th>
+    <th align="center">Self-Forcing <a href="#ref-1">[1]</a> - No Pruning</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/input/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/LIPAR/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/diff_models/self_forcing/penguin.mp4" /></td>
+  </tr>
+  <tr>
+    <th align="center">ToMe <a href="#ref-5">[5]</a> - 32% Pruned</th>
+    <th align="center">Importance-based <a href="#ref-6">[6]</a> - 32% Pruned</th>
+    <th align="center">IDM <a href="#ref-7">[7]</a> - 32% Pruned</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/tome/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/importance_based/penguin.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/other_training_free_pruning/idm/penguin.mp4" /></td>
+  </tr>
+
+
+  </table></li></ul><h2 id='attention-recovery'><span>Effectiveness of Attention Recovery</span></h2>
+  <p>
+  Direct pruning leads to visual artifacts, and only M-degree approximation creates noisy patterns. In contrast, full Attention Recovery effectively mitigates artifacts and restores visual quality.
+  </p>
+  </table><table>
+  <tr>
+    <th align="center">Direct Pruning</th>
+    <th align="center">M-Degree Apprx.</th>
+    <th align="center">M-Degree Apprx.+ Noise-aware Duplication</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ablation/is_prune.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ablation/m-degree.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ablation/attention-recovery.mp4" /></td>
+  </tr>
+
+</table></li></ul><h2 id='visualizations-with-Time-to-move-integration'><span>Visualizations with Time-to-move Integration</span></h2>
+<p>
+  We further integrate our LIPAR method to the Time-to-Move (TTM) model <a href="#ref-8">[8]</a> to demonstrate its generalizability.
+</p>
+<ul><li><p><em><strong><span>Gardening</span></strong></em></p><table>
+  <tr>
+    <th align="center">Motion Prompt</th>
+    <th align="center">TTM <a href="#ref-8">[8]</a></th>
+    <th align="center">LIPAR (Ours) - 47% Pruned</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/motion_prompt/gardening.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/ttm/gardening.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/LIPAR/gardening.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>Owl</span></strong></em></p><table>
+  <tr>
+    <th align="center">Motion Prompt</th>
+    <th align="center">TTM <a href="#ref-8">[8]</a></th>
+    <th align="center">LIPAR (Ours) - 47% Pruned</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/motion_prompt/owl.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/ttm/owl.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/LIPAR/owl.mp4" /></td>
+  </tr>
+</table></li><li><p><em><strong><span>Cocktail</span></strong></em></p><table>
+  <tr>
+    <th align="center">Motion Prompt</th>
+    <th align="center">TTM <a href="#ref-8">[8]</a></th>
+    <th align="center">LIPAR (Ours) - 66% Pruned</th>
+  </tr>
+  <tr>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/motion_prompt/cocktail.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/ttm/cocktail.mp4" /></td>
+    <td align="center"><video controls autoplay muted loop width="480" src="./assets/ttm/LIPAR/cocktail.mp4" /></td>
+  </tr>
+</table>
+LIPAR performs well on all provided TTM examples using random seed 0 on an NVIDIA A6000, with the later observation that generating with other random seeds may sometimes reduce video motion smoothness. This reduction in smoothness is only observed on TTM.
+</li></ul><p>&nbsp;</p><h2 id='reference'><span>Reference</span></h2><ul><li><p><span>[1] Huang, Xun, Zhengqi Li, Guande He, Mingyuan Zhou, and Eli Shechtman. &quot;Self Forcing: Bridging the Train-Test Gap in Autoregressive Video Diffusion.&quot; In Advances in Neural Information Processing Systems. 2025. </span><a name="ref-1" id="ref-1"></a><span> </span></p></li><li><p><span>[2] Liang, Feng, et al. &quot;Looking Backward: Streaming Video-to-Video Translation with Feature Banks.&quot; In The Thirteen International Conference on Learning Representations. 2025. </span><a name="ref-2" id="ref-2"></a><span> </span></p></li><li><p><span>[3] Kodaira, Akio, Chenfeng Xu, Toshiki Hazama, Takanori Yoshimoto, Kohei Ohno, and others. &quot;StreamDiffusion: A Pipeline-level Solution for Real-time Interactive Generation.&quot; In arXiv. 2023. </span><a name="ref-3" id="ref-3"></a><span> </span></p></li><li><p><span>[4] Zhang, Yabo, Yuxiang Wei, Dongsheng Jiang, XIAOPENG ZHANG, Wangmeng Zuo, and Qi Tian. &quot;Input Video: Training-free Controllable Text-to-video Generation.&quot; In The Twelfth International Conference on Learning Representations. 2024. </span><a name="ref-4" id="ref-4"></a><span> </span></p></li><li><p><span>[5] Bolya, Daniel, and Judy Hoffman. &quot;Token merging for fast stable diffusion.&quot; </span><em><span>Proceedings of the IEEE/CVF conference on computer vision and pattern recognition</span></em><span>. 2023. </span><a name="ref-5" id="ref-5"></a><span> </span></p></li><li><p><span>[6] Wu, Haoyu, et al. &quot;Importance-based token merging for efficient image and video generation.&quot; Proceedings of the IEEE/CVF International Conference on Computer Vision. 2025. </span><a name="ref-6" id="ref-6"></a><span> </span></p></li><li><p><span>[7] Fang, Haipeng, et al. &quot;Attend to Not Attended: Structure-then-Detail Token Merging for Post-training DiT Acceleration.&quot; Proceedings of the Computer Vision and Pattern Recognition Conference. 2025. </span><a name="ref-7" id="ref-7"></a><span> </span></p></li><li><p><span>[8] Singer, Assaf, et al. &quot;Time-to-Move: Training-Free Motion Controlled Video Generation via Dual-Clock Denoising.&quot; </span><em><span>arXiv preprint arXiv:2511.08633</span></em><span> (2025). </span><a name="ref-8" id="ref-8"></a><span> </span></p></li></ul></div></div>
+
+</body>
+</html>
