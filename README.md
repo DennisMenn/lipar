@@ -17,13 +17,26 @@
 </p>
 
 <p align="center">
-  <a href="https://drive.google.com/file/d/1a5Oap0lnTgKfnNPWSXIKf8fi7bCgCzSx/view?usp=sharing">Paper</a> |
-  Webpage (coming soon)
+  <a href="https://arxiv.org/abs/2603.05811">Arxiv</a> | <a href="https://dennismenn.github.io/lipar/">Webpage</a>
 </p>
 
 ---
 
 ## Overview
+
+<table align="center" width="600">
+  <tr>
+    <td colspan="2" align="center">
+      <video src="docs/static/images/comparisons/edited.mp4" width="600" controls></video>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center"><strong>Self-forcing (GPU: 20.7 GB)</strong></td>
+    <td width="50%" align="center"><strong>LIPAR (GPU: 16.6 GB)</strong></td>
+  </tr>
+</table>
+<p align="center">throughput/memory evaluated on RTX 4090</p>
+
 Latent Inter-frame Pruning with Attention Recovery (LIPAR) is a **training-free** acceleration framework for conditioned video generation using diffusion transformers. It exploits temporal redundancy in latent features to avoid re-editing unchanged patches while preserving visual quality through an **Attention Recovery** mechanism.
 
 LIPAR consists of three parts:
@@ -31,14 +44,12 @@ LIPAR consists of three parts:
 2. **Attention Recovery**: reduce train-inference mismatch caused by pruning.
 3. **Restoration**: For decoding, recover full latent dimensions after denoising.
 
-Empirically, LIPAR improves average video editing throughput by **1.45×** (from **8.4 FPS** to **12.2 FPS** on A6000), reduces GPU memory usage from **26.24 GB** to **18.56 GB**, while preserving visual quality on selected DAVIS 2017 videos.
-
----
+Empirically, LIPAR improves average video editing throughput by **1.53×** (from **12.6 FPS** to **19.3 FPS** on RTX 4090), reduces GPU memory usage, while preserving visual quality on selected DAVIS 2017 videos.
 
 ## Requirements
-- NVIDIA GPU with at least ~19GB memory (RTX 4090, A6000 tested)
+- NVIDIA GPU with at least 18GB memory (RTX 4090, A6000 tested)
 - Linux
-- 64GB RAM
+- 32GB RAM
 
 Other hardware may work but is not officially tested.
 
@@ -117,11 +128,12 @@ This codebase is built on top of:
 ## Citation
 
 If you find this repository useful, please cite the paper. 
-<!-- ```
-@article{huang2025selfforcing,
-  title={Self Forcing: Bridging the Train-Test Gap in Autoregressive Video Diffusion},
-  author={Huang, Xun and Li, Zhengqi and He, Guande and Zhou, Mingyuan and Shechtman, Eli},
-  journal={arXiv preprint arXiv:2506.08009},
-  year={2025}
+
+```
+@article{{menn2026trainingfreelatentinterframepruning,
+  title={Training-free Latent Inter-Frame Pruning with Attention Recovery},
+  author={Dennis Menn and Yuedong Yang and Bokun Wang and Xiwen Wei and Mustafa Munir and Feng Liang and Radu Marculescu and Chenfeng Xu and Diana Marculescu},
+  journal={arXiv preprint arXiv:2603.05811},
+  year={2026}
 }
-``` -->
+```
