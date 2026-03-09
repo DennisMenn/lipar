@@ -46,6 +46,7 @@ class CausalInferencePipeline(torch.nn.Module):
         self.frame_seq_length = 1560
 
         self.kv_cache1 = None
+        self.crossattn_cache = None
         self.args = args
         self.num_frame_per_block = getattr(args, "num_frame_per_block", 1)
         self.independent_first_frame = args.independent_first_frame
@@ -60,39 +61,76 @@ class CausalInferencePipeline(torch.nn.Module):
         """
         Initialize a Per-GPU KV cache for the Wan model.
         """
-        kv_cache1 = []
         if kv_cache_size is None:
             if self.local_attn_size != -1:
                 kv_cache_size = self.local_attn_size * self.frame_seq_length
             else:
                 kv_cache_size = 32760
 
+        can_reuse_cache = (
+            self.kv_cache1 is not None
+            and len(self.kv_cache1) == self.num_transformer_blocks
+            and self.kv_cache1[0]["k"].shape[0] == batch_size
+            and self.kv_cache1[0]["k"].shape[1] == kv_cache_size
+            and self.kv_cache1[0]["k"].dtype == dtype
+            and self.kv_cache1[0]["k"].device == device
+        )
 
-        for _ in range(self.num_transformer_blocks):
-            kv_cache1.append({
-                "k": torch.zeros([batch_size, kv_cache_size, 12, 128], dtype=dtype, device=device),
-                "v": torch.zeros([batch_size, kv_cache_size, 12, 128], dtype=dtype, device=device),
-                "unrope_prev_k": None,
-                "unrope_prev_v": None,
-                "global_end_index": torch.tensor([0], dtype=torch.long, device=device),
-                "local_end_index": torch.tensor([0], dtype=torch.long, device=device)
-            })
+        if can_reuse_cache:
+            for cache in self.kv_cache1:
+                cache["k"].zero_()
+                cache["v"].zero_()
+                cache["unrope_prev_k"] = None
+                cache["unrope_prev_v"] = None
+                cache["global_end_index"].zero_()
+                cache["local_end_index"].zero_()
+          
+        else:
+            self.kv_cache1 = None
+            kv_cache1 = []
 
-        self.kv_cache1 = kv_cache1  # always store the clean cache
+            for _ in range(self.num_transformer_blocks):
+                kv_cache1.append({
+                    "k": torch.zeros([batch_size, kv_cache_size, 12, 128], dtype=dtype, device=device),
+                    "v": torch.zeros([batch_size, kv_cache_size, 12, 128], dtype=dtype, device=device),
+                    "unrope_prev_k": None,
+                    "unrope_prev_v": None,
+                    "global_end_index": torch.tensor([0], dtype=torch.long, device=device),
+                    "local_end_index": torch.tensor([0], dtype=torch.long, device=device)
+                })
+
+            self.kv_cache1 = kv_cache1  # always store the clean cache
+        return
 
     def _initialize_crossattn_cache(self, batch_size, dtype, device):
         """
         Initialize a Per-GPU cross-attention cache for the Wan model.
         """
-        crossattn_cache = []
+        can_reuse_cache = (
+            self.crossattn_cache is not None
+            and len(self.crossattn_cache) == self.num_transformer_blocks
+            and self.crossattn_cache[0]["k"].shape[0] == batch_size
+            and self.crossattn_cache[0]["k"].dtype == dtype
+            and self.crossattn_cache[0]["k"].device == device
+        )
 
-        for _ in range(self.num_transformer_blocks):
-            crossattn_cache.append({
-                "k": torch.zeros([batch_size, 512, 12, 128], dtype=dtype, device=device),
-                "v": torch.zeros([batch_size, 512, 12, 128], dtype=dtype, device=device),
-                "is_init": False
-            })
-        self.crossattn_cache = crossattn_cache
+        if can_reuse_cache:
+            for cache in self.crossattn_cache:
+                cache["k"].zero_()
+                cache["v"].zero_()
+                cache["is_init"] = False
+        else:
+            self.crossattn_cache = None
+            crossattn_cache = []
+
+            for _ in range(self.num_transformer_blocks):
+                crossattn_cache.append({
+                    "k": torch.zeros([batch_size, 512, 12, 128], dtype=dtype, device=device),
+                    "v": torch.zeros([batch_size, 512, 12, 128], dtype=dtype, device=device),
+                    "is_init": False
+                })
+            self.crossattn_cache = crossattn_cache
+        return
 
     def inference(
         self,
