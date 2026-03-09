@@ -83,12 +83,21 @@
           <div class="column has-text-centered">
             <div class="publication-links">
               <span class="link-block">
-                <a href="https://drive.google.com/file/d/1a5Oap0lnTgKfnNPWSXIKf8fi7bCgCzSx/view?usp=sharing"
+                <a href="https://arxiv.org/abs/2603.05811"
                    class="external-link button is-normal is-rounded is-dark">
                   <span class="icon">
                       <i class="ai ai-arxiv"></i>
                   </span>
                   <span>arXiv</span>
+                </a>
+              </span>
+               <span class="link-block">
+                <a href="https://github.com/DennisMenn/lipar"
+                   class="external-link button is-normal is-rounded is-dark">
+                <span class="icon">
+                    <i class="fab fa-github"></i>
+                </span>
+                <span>Code</span>
                 </a>
               </span>
                <span class="link-block">
@@ -114,6 +123,23 @@
       <video poster="" id="tree" autoplay controls muted loop style="width: 1200px; max-width: 120%; height: auto; margin-left: -80px;">
         <source src="./static/images/comparisons/edited.mp4" type="video/mp4">
       </video>
+      <div class="columns is-mobile is-gapless" style="width: 1200px; max-width: 120%; margin-left: -80px; margin-top: 12px;">
+        <div class="column has-text-centered" style="padding: 0 6px;">
+          <div style="border: 1px solid #d6dce3; background: #f5f7fa; border-radius: 10px; padding: 8px 10px;">
+            <div style="font-size: 1rem; font-weight: 800; line-height: 1.2;">Self-forcing</div>
+            <div style="font-size: 0.9rem; font-weight: 700; color: #55606d;">GPU: 20.7 GB</div>
+          </div>
+        </div>
+        <div class="column has-text-centered" style="padding: 0 6px;">
+          <div style="border: 1px solid #9ed4b4; background: #e7f9ee; border-radius: 10px; padding: 8px 10px;">
+            <div style="font-size: 1rem; font-weight: 800; line-height: 1.2; color: #176438;">LIPAR (Ours)</div>
+            <div style="font-size: 0.9rem; font-weight: 700; color: #237a49;">GPU: 16.6 GB</div>
+          </div>
+        </div>
+      </div>
+      <p class="has-text-centered" style="margin-top: 6px; font-size: 0.9rem; color: #5e6877;">
+        Throughput/memory evaluated on RTX 4090.
+      </p>
     </div>
   </div>
 </section>
@@ -130,8 +156,8 @@
             which detects and skips recomputing duplicated latent patches. Additionally, 
             we introduce a novel <span style="color: orange; font-weight:bold">Attention Recovery</span> that approximates the attention values of pruned tokens, 
             thereby removing visual artifacts arising from naively applying the pruning method. 
-            Empirically, our method increases video editing throughput by 1.45×, 
-            on average achieving 12.2 FPS on an NVIDIA A6000 compared to the baseline 8.4 FPS. 
+            Empirically, our method increases video editing throughput by 1.53×, 
+            on average achieving 19.3 FPS on an NVIDIA RTX 4090 compared to the baseline 12.6 FPS. 
             The proposed method does not compromise generation quality and can seamlessly integrate with the model without additional training. 
             Our approach effectively bridges the gap between traditional compression algorithms and modern generative pipelines. 
           </p>
@@ -165,7 +191,7 @@
         <div class="content has-text-justified">
           <p>
             <strong>Goal:</strong> Calculate the Pearson correlation between the changes of pixels and latents with the same spatial location. <br>
-            $$ \text{Corr}\left(|p_{\text{pixel}}^{(t,x,y)} - p_{\text{pixel}}^{(t+1,x,y)}|, |p_{\text{latent}}^{(t,x,y)} - p_{\text{latent}}^{(t+1,x,y)}|\right) $$
+            $$ \text{Corr}\left(\|p_{\text{pixel}}^{(t,x,y)} - p_{\text{pixel}}^{(t+1,x,y)}\|, \ \|p_{\text{latent}}^{(t,x,y)} - p_{\text{latent}}^{(t+1,x,y)}\|\right) $$
             <strong>Results:</strong> WAN2.1 VAE: 0.69, WAN2.2 VAE: 0.77 (evaluated on Davis2017 train/val sets)<br>
             <strong>Meaning:</strong> A strong linear relationship implies if a patch does not change (is redundant) in pixel space, it also does not change in latent space.
 
@@ -236,7 +262,7 @@
         <div class="content has-text-justified">
           <p>
            Pruning latents will result in visual artifacts because when training the DiT, it only sees full-dimensional latents.  
-           Our goal is to approximate the original output values using the pruned input. In the following example, \(x_2\), \(x_3\), and \(x_5\) are pruned.
+           Our goal is to approximate the original output values using the pruned input. In the following example, \(x_2\), \(x_3\), and \(x_5\) are pruned along the temporal axis.
           </p>
         </div>
       
@@ -303,7 +329,7 @@
 
         <div class="content has-text-justified">
           <p>
-            <span style="color: orange; font-weight:bold">Use your cursor on the video to slide left/right for the video.</span> The edited keyword and prune rate is marked as <span style="color: rgb(47, 137, 11)">green.</span>
+            <span style="color: orange; font-weight:bold">Use your cursor on the video to slide left/right for the video.</span> The edited keyword and is marked as <span style="color: rgb(255, 11, 11)">red.</span>
             You may also want to check comparisons with <a href="sup/sup.html#comparisons-to-existing-real-time-low-latency-v2v-models">other models</a>, <a href="sup/sup.html#comparisons-with-training-free-pruning-methods">other pruning methods</a>, <a href="sup/sup.html#attention-recovery">ablation study</a>, and <a href="sup/sup.html#visualizations-with-Time-to-move-integration">extention to TTM</a>.
           </p>
         </div>    
@@ -313,11 +339,11 @@
           <canvas width="150" height="150" class="videoMerge" id="Teaser2Merge"></canvas>
         </div>
          <p class="has-text-centered">
-          <span style="color:rgb(0, 0, 0); font-weight:bold">Input videos, left: original video, right: pruned (gray region) latents.</span>
+          <span style="color:rgb(0, 0, 0); font-weight:bold">Input videos, left: original video, right: pruned (highlight in gray) latents.</span>
         </p>
         
         <div>
-          <video class="video" id="Teaser3" width="100%" loop playsinline autoPlay muted src="./static/images/comparisons/edited.mp4" onplay="resizeAndPlay(this)"></video>
+          <video class="video" id="Teaser3" width="100%" loop playsinline autoPlay muted src="./static/images/comparisons/edited_comparisons.mp4" onplay="resizeAndPlay(this)"></video>
           <canvas width="150" height="150" class="videoMerge" id="Teaser3Merge"></canvas>
         </div>
          <p class="has-text-centered">
@@ -367,12 +393,25 @@ SD: StreamDiffusion, SF: Self-Forcing, SV2V: StreamV2V, Control: ControlVideo.
       <br>
       <h2 class="title is-3">Limitations</h2>
       <p>
-       For videos with camera motion, LIPAR achieves less acceleration due to the reduction of redundant patches.
+       For videos with camera motion, LIPAR achieves less acceleration due to the direct comparisons with previous patches.
       </p>
     </div>
       
 </section>
 
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+        <pre><code>@article{menn2026trainingfreelatentinterframepruning,
+  title={Training-free Latent Inter-Frame Pruning with Attention Recovery},
+  author={Dennis Menn and Yuedong Yang and Bokun Wang and Xiwen Wei and Mustafa Munir and Feng Liang and Radu Marculescu and Chenfeng Xu and Diana Marculescu},
+  journal={arXiv preprint arXiv:2603.05811},
+  year={2026}
+}
+
+</code></pre>
+  </div>
+</section>
 
 <footer class="footer">
   <div class="container">
