@@ -27,7 +27,9 @@
 <table align="center" width="600">
   <tr>
     <td colspan="2" align="center">
-      <video src="docs/static/images/comparisons/edited.mp4" width="600" controls></video>
+      <a href="docs/static/images/comparisons/edited.mp4">
+        <img src="docs/static/images/comparisons/edited.gif" width="600" alt="Edited comparison video preview" />
+      </a>
     </td>
   </tr>
   <tr>
