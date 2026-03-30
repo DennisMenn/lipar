@@ -1,0 +1,20 @@
+# Server
+host: "0.0.0.0"
+port: 5001
+
+# Model
+checkpoint_path: "./checkpoints/self_forcing_dmd.pt"
+config_path: "./configs/self_forcing_dmd.yaml"
+fp8: false              # FP8 quantization (requires torchao, CUDA >= 8.9)
+seed: -1                # -1 for random
+
+# LIPAR pruning
+use_lipar: true         # Enable LIPAR (is_lip + m_approx + n_aware_dup)
+is_lip: true            # Latent Inter-frame Pruning
+m_approx: true          # m-degree approximation for attention recovery
+n_aware_dup: true       # Noise-aware duplication for attention recovery
+m: [1, 8]               # Approximation bounds [first, last]
+
+# Debug
+profile: true            # per-step timing
+save_debug_video: false  # Save side-by-side debug video

@@ -33,6 +33,11 @@ wan_models/
 
 # Generated outputs and local experiments
 eval/
+filter_videos/
+mask_output/
+profile/
+videos/
+images/
 old_code/
 other_exp/
 output/
@@ -40,7 +45,6 @@ outputs/
 plot/
 src/pipeline/unused/
 src/utils/unused/
-templates/
 test*/
 unused/
 video_editing/

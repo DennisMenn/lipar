@@ -6,7 +6,7 @@ real_name: Wan2.1-T2V-1.3B
 text_encoder_fsdp_wrap_strategy: size
 denoising_step_list:
 - 400
-- 300
+- 350
 - 250
 warp_denoising_step: true # need to remove - 0 in denoising_step_list if warp_denoising_step is true
 ts_schedule: false

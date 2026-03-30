@@ -12,9 +12,19 @@ import einops
 import numpy as np
 import datetime
 import torchvision
+import imageio.v3 as iio
+from torchvision import transforms
+
 
 from PIL import Image
 
+def load_video_path(video_path, device=None, dtype=None):
+    video = iio.imread(video_path, plugin="pyav")
+    video = torch.tensor(video, dtype=dtype, device=device).unsqueeze(0).permute(0, 1, 4, 2, 3) / 255.0
+    # b, t, c, h, w 
+    transform = transforms.Compose([transforms.Resize((480, 832))])
+    video = transform(video)
+    return video
 
 def min_resize(x, m):
     if x.shape[0] < x.shape[1]:
@@ -614,3 +624,132 @@ def move_optimizer_to_device(optimizer, device):
         for k, v in state.items():
             if isinstance(v, torch.Tensor):
                 state[k] = v.to(device)
+
+
+def _apply_light_tint(overlay, mask_bool, channel_boosts):
+    """Apply a light color tint on True regions of mask_bool.
+
+    Args:
+        overlay: (H, W, 3) uint8 array, modified in-place.
+        mask_bool: (H, W) bool array.
+        channel_boosts: tuple of (R, G, B) boost values. Positive = add, negative = subtract.
+    """
+    for ch, boost in enumerate(channel_boosts):
+        if boost > 0:
+            overlay[mask_bool, ch] = np.minimum(
+                overlay[mask_bool, ch].astype(np.int16) + boost, 255).astype(np.uint8)
+        elif boost < 0:
+            overlay[mask_bool, ch] = np.maximum(
+                overlay[mask_bool, ch].astype(np.int16) + boost, 0).astype(np.uint8)
+
+
+def build_debug_frames(block_pixel_frames, prune_mask, pixels,
+                       raw_seg_masks=None, prev_seg_mask=None, prev_prev_seg_mask=None):
+    """Build side-by-side debug frames: input with mask overlays | generated output.
+
+    Color overlays on True (kept) regions:
+        Red (light): raw_seg_masks — current block's raw segmentation mask
+        Green (light): prev_seg_mask — previous block's last raw mask
+        Blue (light): prev_prev_seg_mask — two blocks ago's last raw mask
+        Yellow (light): prune_mask — final latent-resolution mask
+
+    Args:
+        block_pixel_frames: list of 12 input tensors (C, H, W) in [0, 1].
+        prune_mask: bool tensor (1, 3, C, H_lat, W_lat) or None.
+        pixels: output tensor (1, 12, C, H, W) in [-1, 1].
+        raw_seg_masks: list of 3 masks (H, W) tensors, or None.
+        prev_seg_mask: previous block's last raw mask (H, W) tensor, or None.
+        prev_prev_seg_mask: two blocks ago's last raw mask (H, W) tensor, or None.
+
+    Returns:
+        list of JPEG bytes, one per aligned frame pair.
+    """
+    from io import BytesIO
+
+    num_frames = min(len(block_pixel_frames), pixels.shape[1])
+    results = []
+
+    # Extract 3 spatial masks from prune_mask: take channel 0 → (3, H_lat, W_lat)
+    prune_2d = None
+    if prune_mask is not None:
+        prune_2d = prune_mask[0, :, 0].cpu().float().numpy()  # (3, H_lat, W_lat)
+
+    # Convert seg masks to numpy
+    prev_np = None
+    if prev_seg_mask is not None:
+        prev_np = prev_seg_mask.cpu().float().numpy() if isinstance(prev_seg_mask, torch.Tensor) else prev_seg_mask
+    prev_prev_np = None
+    if prev_prev_seg_mask is not None:
+        prev_prev_np = prev_prev_seg_mask.cpu().float().numpy() if isinstance(prev_prev_seg_mask, torch.Tensor) else prev_prev_seg_mask
+    raw_np = None
+    if raw_seg_masks is not None:
+        raw_np = [m.cpu().float().numpy() if isinstance(m, torch.Tensor) else m for m in raw_seg_masks]
+
+    print(f"[debug] raw_np={raw_np is not None}, prev_np={prev_np is not None}, prev_prev_np={prev_prev_np is not None}")
+    if raw_np is not None:
+        print(f"[debug] raw[0] true%={float((raw_np[0] > 0.5).sum()) / raw_np[0].size * 100:.1f}%, shape={raw_np[0].shape}")
+
+    for i in range(num_frames):
+        # Input frame: (C, H, W) [0, 1] → (H, W, C) uint8
+        inp_tensor = block_pixel_frames[i]
+        if isinstance(inp_tensor, torch.Tensor):
+            inp = (inp_tensor.cpu().clamp(0, 1) * 255).byte().permute(1, 2, 0).numpy()
+        else:
+            inp = inp_tensor
+
+        overlay = inp.copy()
+        H, W = overlay.shape[:2]
+
+        # Build additive color overlay from 3 most recent masks + prune_mask
+        # Red = newest, Green = middle, Blue = oldest — overlaps mix naturally
+        group_idx = min(i // 4, 2)
+        all_masks = []
+        if prev_prev_np is not None:
+            all_masks.append(prev_prev_np)
+        if prev_np is not None:
+            all_masks.append(prev_np)
+        if raw_np is not None:
+            for ri in range(min(group_idx + 1, len(raw_np))):
+                all_masks.append(raw_np[ri])
+        recent = all_masks[-3:] if len(all_masks) >= 3 else all_masks
+
+        # Accumulate color in float, then blend
+        color_add = np.zeros((H, W, 3), dtype=np.float32)
+        # channels: [blue, green, red] for [oldest, middle, newest]
+        channel_map = [(0, 0, 120), (0, 120, 0), (120, 0, 0)]  # RGB boosts
+        for mi, mask_np in enumerate(recent):
+            m = mask_np
+            if m.shape[0] != H or m.shape[1] != W:
+                m = cv2.resize(m, (W, H), interpolation=cv2.INTER_NEAREST)
+            kept = m > 0
+            tint_idx = mi if len(recent) == 3 else (3 - len(recent) + mi)
+            r, g, b = channel_map[tint_idx]
+            color_add[kept, 0] += r
+            color_add[kept, 1] += g
+            color_add[kept, 2] += b
+
+        overlay = np.clip(overlay.astype(np.float32) + color_add, 0, 255).astype(np.uint8)
+
+        # Output frame: (C, H, W) [-1, 1] → (H, W, C) uint8
+        out = (pixels[0, i].cpu().clamp(-1, 1) * 127.5 + 127.5).byte().permute(1, 2, 0).numpy()
+        if out.shape[0] != H or out.shape[1] != W:
+            out = cv2.resize(out, (W, H))
+
+        # Yellow overlay on edited video: prune_mask used in denoising (bool, 0/1)
+        if prune_2d is not None:
+            mask_group_idx = min(i // 4, prune_2d.shape[0] - 1)
+            mask = prune_2d[mask_group_idx]
+            mask_up = cv2.resize(mask, (out.shape[1], out.shape[0]), interpolation=cv2.INTER_NEAREST)
+            kept = mask_up > 0
+            out_color = np.zeros_like(out, dtype=np.float32)
+            out_color[kept, 0] += 80
+            out_color[kept, 1] += 80
+            out = np.clip(out.astype(np.float32) + out_color, 0, 255).astype(np.uint8)
+
+        sbs = np.concatenate([overlay, out], axis=1)
+        sbs_img = Image.fromarray(sbs)
+        buf = BytesIO()
+        sbs_img.save(buf, format='JPEG', quality=90)
+        results.append(buf.getvalue())
+
+    return results

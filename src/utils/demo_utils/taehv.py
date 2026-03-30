@@ -57,7 +57,7 @@ class TGrow(nn.Module):
         return x.reshape(-1, C, H, W)
 
 
-def apply_model_with_memblocks(model, x, parallel, show_progress_bar, decode=False):
+def apply_model_with_memblocks(model, x, parallel, show_progress_bar, decode=False, mem=None):
     """
     Apply a sequential model with memblocks to the given input.
     Args:
@@ -66,8 +66,9 @@ def apply_model_with_memblocks(model, x, parallel, show_progress_bar, decode=Fal
     - parallel: if True, parallelize over timesteps (fast but uses O(T) memory)
         if False, each timestep will be processed sequentially (slow but uses O(1) memory)
     - show_progress_bar: if True, enables tqdm progressbar display
+    - mem: optional list of per-layer memory state from a previous call (sequential mode only)
 
-    Returns NTCHW tensor of output data.
+    Returns (NTCHW tensor, mem) tuple where mem is the final per-layer state.
     """
     assert x.ndim == 5, f"TAEHV operates on NTCHW tensors, but got {x.ndim}-dim tensor"
     N, T, C, H, W = x.shape
@@ -98,7 +99,8 @@ def apply_model_with_memblocks(model, x, parallel, show_progress_bar, decode=Fal
         # we'll update it for every source node that we consume.
         progress_bar = tqdm(range(T), disable=not show_progress_bar)
         # we'll also need a separate addressable memory per node as well
-        mem = [None] * len(model)
+        if mem is None:
+            mem = [None] * len(model)
         while work_queue:
             xt, i = work_queue.pop(0)
             if i == 0:
@@ -156,7 +158,8 @@ def apply_model_with_memblocks(model, x, parallel, show_progress_bar, decode=Fal
                     work_queue.insert(0, TWorkItem(xt, i + 1))
         progress_bar.close()
         x = torch.stack(out, 1)
-    return x
+        return x, mem
+    return x, None
 
 
 class TAEHV(nn.Module):
@@ -210,7 +213,7 @@ class TAEHV(nn.Module):
                     sd[key] = sd[key][-new_sd[key].shape[0]:]
         return sd
 
-    def encode_video(self, x, parallel=True, show_progress_bar=True):
+    def encode_video(self, x, parallel=True, show_progress_bar=True, mem=None):
         """Encode a sequence of frames.
 
         Args:
@@ -218,9 +221,10 @@ class TAEHV(nn.Module):
             parallel: if True, all frames will be processed at once.
               (this is faster but may require more memory).
               if False, frames will be processed sequentially.
-        Returns NTCHW latent tensor with ~Gaussian values.
+            mem: optional per-layer memory state from a previous call for cached encoding.
+        Returns (NTCHW latent tensor, mem) tuple.
         """
-        return apply_model_with_memblocks(self.encoder, x, parallel, show_progress_bar)
+        return apply_model_with_memblocks(self.encoder, x, parallel, show_progress_bar, mem=mem)
 
     def decode_video(self, x, parallel=True, show_progress_bar=False):
         """Decode a sequence of frames.
@@ -232,7 +236,7 @@ class TAEHV(nn.Module):
               if False, frames will be processed sequentially.
         Returns NTCHW RGB tensor with ~[0, 1] values.
         """
-        x = apply_model_with_memblocks(self.decoder, x, parallel, show_progress_bar, decode=True)
+        x, _ = apply_model_with_memblocks(self.decoder, x, parallel, show_progress_bar, decode=True)
         # return x[:, self.frames_to_trim:]
         return x
 

@@ -101,6 +101,11 @@ def parse_args():
         action="store_true",
         help="Apply default LIPAR settings: --is_lip --m_approx --n_aware_dup --m 1 6 (unless --m is set)",
     )
+    parser.add_argument(
+        "--webcam",
+        action="store_true",
+        help="Webcam mode: when used with --use_lipar, sets --m to [1, 8] and --tau to 0.1",
+    )
     parser.add_argument("--is_lip", action="store_true", help="Whether to perform Latent Inter-frame Pruning")
     parser.add_argument("--m_approx", action="store_true", help="Whether to perform m degree approximation for attention recovery")
     parser.add_argument(
@@ -116,15 +121,21 @@ def parse_args():
         help="determine m for m-degree approximation; (1,6) is suggested (< first_frames, > last_frames)",
     )
     parser.add_argument("--track_mask", action="store_true", help="Whether to track where we prune the tokens")
+    
     return parser.parse_args()
 
 
 def apply_lipar_defaults(args):
+    args.min_true_ratio = None
     if args.use_lipar:
         args.is_lip = True
         args.m_approx = True
         args.n_aware_dup = True
-        if args.m is None:
+        if args.webcam:
+            args.m = [1, 8]
+            args.tau = 0.1
+            args.min_true_ratio = 0.35
+        elif args.m is None:
             args.m = [1, 6]
 
 
@@ -294,6 +305,7 @@ def main():
             "patch_dims": list(map(int, args.patch_size.split(","))),
             "drop_param": args.tau,
             "drop_param2": args.tau2,
+            "min_true_ratio": args.min_true_ratio,
         }
 
         edit_video, compression_ratio, elapsed_time = pipeline.inference(

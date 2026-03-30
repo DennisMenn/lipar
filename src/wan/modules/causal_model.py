@@ -27,6 +27,8 @@ flex_attention = torch.compile(
 
 def causal_rope_apply(x, grid_sizes, freqs, start_frame=0, prune_mask=None):
     assert x.shape[0] == 1, "only handle one batch at a time"
+    if x.shape[1] == 0: return x
+
     n, c = x.size(2), x.size(3) // 2
 
     # split freqs
@@ -60,6 +62,27 @@ def causal_rope_apply(x, grid_sizes, freqs, start_frame=0, prune_mask=None):
         output.append(x_i)
     return torch.stack(output).type_as(x)
 
+def causal_inv_rope_apply(x, rotate_frames, grid_sizes, freqs):
+    assert x.shape[0] == 1, "only handle one batch at a time"
+    if x.shape[1] == 0: return x
+
+    n, c = x.size(2), x.size(3) // 2
+    freqs = freqs.split([c - 2 * (c // 3), c // 3, c // 3], dim=1)
+    (_, h, w) = grid_sizes[0].tolist()
+    seq_len = x[0].shape[0]
+    f = seq_len // (h * w)
+    # precompute multipliers
+    x = torch.view_as_complex(x[0, :seq_len].to(torch.float64).reshape(seq_len, n, -1, 2))
+    freqs_i = torch.cat([
+        freqs[0][rotate_frames].view(1, 1, 1, -1).expand(f, h, w, -1),
+        torch.ones_like(freqs[1][:h].view(1, h, 1, -1).expand(f, h, w, -1)),
+        torch.ones_like(freqs[2][:w].view(1, 1, w, -1).expand(f, h, w, -1)),
+    ],
+        dim=-1).reshape(seq_len, 1, -1)
+
+    x = torch.view_as_real(x / freqs_i).flatten(2)
+
+    return torch.stack([x]).type_as(x)
 
 class CausalWanSelfAttention(nn.Module):
 
@@ -76,6 +99,8 @@ class CausalWanSelfAttention(nn.Module):
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
         self.local_attn_size = local_attn_size
+        # Tracks which block has been pre-filled with rotated prev_k/v
+        self._prefilled_block_end = None
         self.sink_size = sink_size
         self.qk_norm = qk_norm
         self.eps = eps
@@ -219,61 +244,84 @@ class CausalWanSelfAttention(nn.Module):
 
             #Can't unprune from kv cache: If it is first denoising step or in memory step, there is no need to unprune clean tokens from kv cache
             if is_first_denoising or is_memory_step: from_memory = False
-            if is_unprune_kv:
+            # ── Shared setup: RoPE params, cache indices, eviction ──
+            prune_mask_q = prune_mask if is_prune else None
+            max_train_len = 21
+            rope_start_frame = current_start_frame
+            if current_start_frame + grid_sizes[0][0].item() - 1 >= max_train_len:
+                rope_start_frame = max_train_len - grid_sizes[0][0].item()
+            rope_kwargs = {'grid_sizes': grid_sizes, 'freqs': freqs, 'start_frame': rope_start_frame}
+
+            if is_unprune_kv and is_memory_step:
+                # Memory step does full unprune first, so num_new_tokens comes from unpruned k
                 k = unprune_kv(k, kv_cache["unrope_prev_k"], prune_mask, from_memory=from_memory)
                 v = unprune_kv(v, kv_cache["unrope_prev_v"], prune_mask, from_memory=from_memory)
+                kv_cache["unrope_prev_k"] = k[:, -TOKENS_PER_FRAME:]
+                kv_cache["unrope_prev_v"] = v[:, -TOKENS_PER_FRAME:]
+                num_new_tokens = k.shape[1]
+            elif is_unprune_kv:
+                # Denoising fast path: always full block size (pre-fill handles non-kept)
+                num_new_tokens = TOKENS_PER_BLOCK
+            else:
+                num_new_tokens = k.shape[1]
 
-                if is_memory_step:
-                    # To store clean tokens for next denoising steps to substitude
-                    kv_cache["unrope_prev_k"] = k[:, -TOKENS_PER_FRAME:]
-                    kv_cache["unrope_prev_v"] = v[:, -TOKENS_PER_FRAME:]
-
-            # Record index
-            num_new_tokens = k.shape[1] 
-
-            if is_first_denoising: # first denoising step may have different num_new_tokens
+            # Compute cache write indices
+            if is_first_denoising:
                 local_end_index = num_new_tokens
                 local_start_index = 0
                 kv_cache["global_end_index"].fill_(current_end)
             else:
-                local_end_index = kv_cache["local_end_index"].item() # subsequent denoising step have fixed num_new_tokens
+                local_end_index = kv_cache["local_end_index"].item()
                 local_start_index = local_end_index - num_new_tokens
-    
-                if current_end - kv_cache["global_end_index"].item() != 0: # If the current_end != global_end_index, denoising new frames
+                if current_end != kv_cache["global_end_index"].item():
                     local_start_index = local_end_index
-                    local_end_index = local_start_index + num_new_tokens  
+                    local_end_index = local_start_index + num_new_tokens
 
-            
-            # Apply RoPE
-            prune_mask_q = prune_mask if is_prune else None # Prune q no matter what
-            prune_mask_k = prune_mask if (is_prune and (not is_unprune_kv)) else None
-            
-            kwargs = {'grid_sizes': grid_sizes, 'freqs': freqs, 'start_frame': current_start_frame}
-            roped_query = causal_rope_apply(q, prune_mask=prune_mask_q, **kwargs).type_as(v)
-            roped_key   = causal_rope_apply(k, prune_mask=prune_mask_k, **kwargs).type_as(v)
-
-            # Update KV cache end
+            # Cache eviction: shift old entries when cache is full
             kv_cache_size = kv_cache["k"].shape[1]
             if (current_end > kv_cache["global_end_index"].item()) and (
                     num_new_tokens + kv_cache["local_end_index"].item() > kv_cache_size):
-                # Calculate the number of new tokens added in this step
-                # Shift existing cache content left to discard oldest tokens
-                # Clone the source slice to avoid overlapping memory error
                 num_evicted_tokens = num_new_tokens + kv_cache["local_end_index"].item() - kv_cache_size
                 num_rolled_tokens = kv_cache["local_end_index"].item() - num_evicted_tokens - sink_tokens
-                kv_cache["k"][:, sink_tokens:sink_tokens + num_rolled_tokens] = \
-                    kv_cache["k"][:, sink_tokens + num_evicted_tokens:sink_tokens + num_evicted_tokens + num_rolled_tokens].clone()
+                surviving_k = kv_cache["k"][:, sink_tokens + num_evicted_tokens:sink_tokens + num_evicted_tokens + num_rolled_tokens].clone()
+                if current_start_frame + grid_sizes[0][0].item() - 1 >= max_train_len:
+                    surviving_k = causal_inv_rope_apply(surviving_k, rotate_frames=grid_sizes[0][0].item(), grid_sizes=grid_sizes, freqs=freqs).type_as(v)
+                kv_cache["k"][:, sink_tokens:sink_tokens + num_rolled_tokens] = surviving_k
                 kv_cache["v"][:, sink_tokens:sink_tokens + num_rolled_tokens] = \
                     kv_cache["v"][:, sink_tokens + num_evicted_tokens:sink_tokens + num_evicted_tokens + num_rolled_tokens].clone()
-                # Insert the new keys/values at the end
-
-                #this part need to be modified
                 local_end_index = kv_cache_size
                 local_start_index = local_end_index - num_new_tokens
+
+            # ── Path A: Memory step — full unprune, rope all, write all to cache ──
+            if is_unprune_kv and is_memory_step:
+                roped_query = causal_rope_apply(q, prune_mask=prune_mask_q, **rope_kwargs).type_as(v)
+                roped_key = causal_rope_apply(k, prune_mask=None, **rope_kwargs).type_as(v)
                 kv_cache["k"][:, local_start_index:local_end_index] = roped_key
                 kv_cache["v"][:, local_start_index:local_end_index] = v
+                self._prefilled_block_end = None
+
+            # ── Path B: Denoising fast path — pre-fill once, then scatter kept tokens ──
+            elif is_unprune_kv:
+                # Pre-fill: rotate prev_k/v to current block's 3 frame positions (once per block)
+                if self._prefilled_block_end != current_end:
+                    fill_k = kv_cache["unrope_prev_k"].repeat(1, 3, 1, 1)  # [1, 4680, 12, 128]
+                    fill_v = kv_cache["unrope_prev_v"].repeat(1, 3, 1, 1)
+                    roped_fill_k = causal_rope_apply(fill_k, prune_mask=None, **rope_kwargs).type_as(v)
+                    kv_cache["k"][:, local_start_index:local_end_index] = roped_fill_k
+                    kv_cache["v"][:, local_start_index:local_end_index] = fill_v
+                    self._prefilled_block_end = current_end
+
+                # Rope only kept tokens, scatter into pre-filled cache
+                roped_query = causal_rope_apply(q, prune_mask=prune_mask_q, **rope_kwargs).type_as(v)
+                roped_key = causal_rope_apply(k, prune_mask=prune_mask, **rope_kwargs).type_as(v)
+                kept_indices = prune_mask[0].nonzero(as_tuple=False).squeeze(-1)
+                kv_cache["k"][0, local_start_index + kept_indices] = roped_key[0]
+                kv_cache["v"][0, local_start_index + kept_indices] = v[0]
+
+            # ── Path C: No unprune — rope all, write all to cache ──
             else:
-                # Assign new keys/values directly up to current_end
+                roped_query = causal_rope_apply(q, prune_mask=prune_mask_q, **rope_kwargs).type_as(v)
+                roped_key = causal_rope_apply(k, prune_mask=prune_mask, **rope_kwargs).type_as(v)
                 kv_cache["k"][:, local_start_index:local_end_index] = roped_key
                 kv_cache["v"][:, local_start_index:local_end_index] = v
 
@@ -294,7 +342,10 @@ class CausalWanSelfAttention(nn.Module):
                 k_cache = kv_cache["k"][:, max(0, local_end_index - self.max_attention_size):local_end_index]
                 v_cache = kv_cache["v"][:, max(0, local_end_index - self.max_attention_size):local_end_index]
 
-            x = attention(roped_query, k_cache, v_cache)
+            if roped_query.shape[1] == 0:
+                x = roped_query
+            else:
+                x = attention(roped_query, k_cache, v_cache)
            
             kv_cache["global_end_index"].fill_(current_end) # global_end_index is for the frames (unpruned) being processed
             kv_cache["local_end_index"].fill_(local_end_index) # local_end_index is for the frames (pruned) in kv_cache
@@ -404,6 +455,8 @@ class CausalWanAttentionBlock(nn.Module):
 
         # cross-attention & ffn function
         def cross_attn_ffn(x, context, context_lens, e, crossattn_cache=None):
+            if x.shape[1] == 0:
+                return x
             x = x + self.cross_attn(self.norm3(x), context,
                                     context_lens, crossattn_cache=crossattn_cache)
             y = self.ffn(self.norm2(x) * (1 + e[4][:,0]) + e[3][:,0])

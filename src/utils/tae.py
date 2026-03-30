@@ -29,9 +29,10 @@ class TAEHVDiffusersWrapper(torch.nn.Module):
                 print(f"Failed to download taew2_1.pth: {e}")
                 raise
 
-    def encode_to_latent(self, x):
+    def encode_to_latent(self, x, mem=None):
         # x: NTCHW value [0,1]
-        return self.taehv.encode_video(x, parallel=False, show_progress_bar=False)
+        # Returns (latent, mem) tuple
+        return self.taehv.encode_video(x, parallel=False, show_progress_bar=False, mem=mem)
 
     def decode_to_pixel(self, latents, use_cache=False):
         return self.taehv.decode_video(latents, parallel=False).mul_(2).sub_(1)

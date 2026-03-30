@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming LIPAR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'IBM Plex Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #0f1117;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            margin-bottom: 16px;
+        }
+        .prompt-area {
+            flex: 1;
+            display: flex;
+        }
+        .prompt-area textarea {
+            width: 100%;
+            height: 100%;
+            background: #1a1d27;
+            border: 1px solid #2a2d3a;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1.6em;
+            padding: 14px 16px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .prompt-area textarea:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+        .prompt-area textarea::placeholder {
+            color: #555;
+        }
+        .controls .submit-btn {
+            white-space: nowrap;
+            padding: 12px 28px;
+            font-size: 1em;
+        }
+        .btn-column {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .btn-column .camera-btn,
+        .btn-column .stop-btn {
+            flex: 1;
+        }
+        button {
+            font-family: inherit;
+            font-size: 0.95em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 0.15s, transform 0.1s;
+        }
+        button:active { transform: scale(0.97); }
+        button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .camera-btn { background: #2563eb; color: #fff; }
+        .camera-btn:hover:not(:disabled) { background: #1d4ed8; }
+        .submit-btn { background: #16a34a; color: #fff; }
+        .submit-btn:hover:not(:disabled) { background: #15803d; }
+        .stop-btn { background: #dc2626; color: #fff; }
+        .stop-btn:hover:not(:disabled) { background: #b91c1c; }
+
+        .stats-bar {
+            display: flex;
+            gap: 24px;
+            padding: 10px 16px;
+            background: #1a1d27;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 1.05em;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stat-label { color: #888; }
+        .stat-value { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+        .video-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .video-column h3 {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #aaa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .video-container {
+            background: #000;
+            border-radius: 12px;
+            border: 1px solid #1e2130;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            aspect-ratio: 832 / 480;
+        }
+        .video-container img, .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .placeholder-text {
+            color: #555;
+            font-size: 1.1em;
+        }
+        .frame-info {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 6px;
+            text-align: center;
+        }
+
+        #statusContainer > div {
+            background: #332b00 !important;
+            color: #fbbf24 !important;
+            border: 1px solid #854d0e !important;
+            border-radius: 8px !important;
+            padding: 12px 16px !important;
+            margin-top: 12px !important;
+            font-size: 0.95em !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Streaming LIPAR</h1>
+
+        <div class="controls">
+            <div class="prompt-area">
+                <textarea id="prompt" placeholder="Describe the video you want to generate..."></textarea>
+            </div>
+            <button id="submitPromptBtn" class="submit-btn" onclick="submitPrompt()" disabled>Submit Prompt</button>
+            <div class="btn-column">
+                <button id="cameraBtn" class="camera-btn" onclick="toggleCamera()">Start Camera</button>
+                <button id="stopBtn" class="stop-btn" onclick="togglePause()" disabled>Stop</button>
+            </div>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">Elapsed</span>
+                <span class="stat-value" id="elapsedTime">0s</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Camera</span>
+                <span class="stat-value"><span id="fpsCamera">0</span> fps</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Display</span>
+                <span class="stat-value"><span id="fpsDisplay">0</span> fps</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Frames</span>
+                <span class="stat-value" id="totalFrames">0</span>
+            </div>
+        </div>
+
+        <div class="video-pair">
+            <div class="video-column">
+                <h3>Webcam</h3>
+                <div class="video-container">
+                    <video id="webcamVideo" autoplay playsinline muted style="display: none;"></video>
+                    <canvas id="webcamCanvas" style="display: none;"></canvas>
+                    <canvas id="maskCanvas" style="display: none;"></canvas>
+                    <div id="webcamPlaceholder" class="placeholder-text">Click "Start Camera" to begin</div>
+                </div>
+            </div>
+            <div class="video-column">
+                <h3>Edited Video</h3>
+                <div class="video-container">
+                    <img id="videoFrame" src="" alt="Edited video" style="display: none;">
+                    <div id="placeholderText" class="placeholder-text">Click "Submit Prompt" to begin</div>
+                    <div id="frameInfo" class="frame-info"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="statusContainer"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        let frameBuffer = [];
+        let currentFrameIndex = 0;
+        let isPlaying = false;
+        let playbackInterval = null;
+        let targetFps = 30;  // will be auto-detected from camera
+        let startTime = null;
+        let receiveCount = 0;
+
+        // Webcam state
+        let webcamStream = null;
+        let webcamCapturing = false;
+        let webcamLocalBuffer = [];    // local buffer of {frame, mask} objects
+        let pushInterval = null;       // 50ms timer for pushing frames to server
+
+        // MediaPipe SelfieSegmentation
+        let selfieSegmentation = null;
+        let latestMaskDataUrl = null;  // updated by onResults callback
+
+        // FPS tracking
+        let fpsCameraCount = 0;   // frames rendered by camera hardware
+        let fpsDisplayCount = 0;  // frames displayed on screen
+        let fpsInterval = null;
+        let lastCameraFps = 30;   // last measured camera fps, used for playback
+
+        socket.on('connect', function() {});
+        socket.on('status', function() {});
+        socket.on('frame_ready', function(data) {
+            frameBuffer.push(data);
+            receiveCount++;
+            updateBufferInfo();
+            if (frameBuffer.length === 5 && !isPlaying) { startPlayback(); }
+        });
+
+        socket.on('show_warning', function(data) {
+            if (data.message) {
+                const container = document.getElementById('statusContainer');
+                container.innerHTML = `<div>${data.message}</div>`;
+                setTimeout(() => { container.innerHTML = ''; }, 15000);
+            }
+        });
+
+        socket.on('webcam_ready', function() {
+            startWebcamCapture();
+        });
+
+        socket.on('block_fps', function(data) {
+            // Play output at generation throughput so frames flow smoothly with no waiting
+            targetFps = data.fps;
+
+            // Skip ahead to keep only the last 2 unplayed frames,
+            // so we stay near real-time and don't fall behind next block
+            const unplayed = frameBuffer.length - currentFrameIndex;
+            if (unplayed > 2) {
+                currentFrameIndex = frameBuffer.length - 2;
+                updateBufferInfo();
+            }
+
+            if (isPlaying) updatePlaybackTiming();
+        });
+
+        socket.on('generation_complete', function(data) {
+            stopWebcamCapture();
+            isGenerating = false;
+            isPaused = false;
+            document.getElementById('submitPromptBtn').disabled = false;
+            document.getElementById('submitPromptBtn').textContent = 'Submit Prompt';
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('stopBtn').textContent = 'Stop';
+            const duration = startTime ? ((Date.now() - startTime) / 1000).toFixed(1) : 'unknown';
+            updateFrameInfo(`Done! ${data.total_frames} frames in ${duration}s`);
+        });
+
+        socket.on('error', function(data) {
+            if (data.message) { updateFrameInfo(data.message); }
+            stopWebcamCapture();
+            isGenerating = false;
+            isPaused = false;
+            document.getElementById('submitPromptBtn').disabled = false;
+            document.getElementById('submitPromptBtn').textContent = 'Submit Prompt';
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('stopBtn').textContent = 'Stop';
+        });
+
+        // --- Webcam functions ---
+
+        async function toggleCamera() {
+            if (webcamStream) {
+                // Stop camera
+                webcamStream.getTracks().forEach(t => t.stop());
+                webcamStream = null;
+                document.getElementById('webcamVideo').style.display = 'none';
+                document.getElementById('webcamPlaceholder').style.display = 'block';
+                document.getElementById('cameraBtn').textContent = 'Start Camera';
+                document.getElementById('submitPromptBtn').disabled = true;
+                if (selfieSegmentation) {
+                    selfieSegmentation.close();
+                    selfieSegmentation = null;
+                }
+            } else {
+                // Start camera
+                try {
+                    webcamStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 832 }, height: { ideal: 480 }, frameRate: { ideal: 30 } }
+                    });
+                    const video = document.getElementById('webcamVideo');
+                    video.srcObject = webcamStream;
+                    video.style.display = 'block';
+                    document.getElementById('webcamPlaceholder').style.display = 'none';
+                    document.getElementById('cameraBtn').textContent = 'Stop Camera';
+                    document.getElementById('submitPromptBtn').disabled = false;
+
+                    // Initialize MediaPipe SelfieSegmentation
+                    selfieSegmentation = new SelfieSegmentation({
+                        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+                    });
+                    selfieSegmentation.setOptions({ modelSelection: 1 });
+                    selfieSegmentation.onResults(onSegmentationResults);
+                    await selfieSegmentation.initialize();
+                } catch (err) {
+                    alert('Failed to access camera: ' + err.message);
+                }
+            }
+        }
+
+        function onSegmentationResults(results) {
+            // Draw the segmentation mask to the hidden mask canvas as grayscale
+            const maskCanvas = document.getElementById('maskCanvas');
+            const maskCtx = maskCanvas.getContext('2d');
+            maskCanvas.width = 832;
+            maskCanvas.height = 480;
+            maskCtx.drawImage(results.segmentationMask, 0, 0, 832, 480);
+            latestMaskDataUrl = maskCanvas.toDataURL('image/jpeg', 0.5);
+        }
+
+        function startWebcamCapture() {
+            if (!webcamStream || webcamCapturing) return;
+            webcamCapturing = true;
+            webcamLocalBuffer = [];
+
+            const video = document.getElementById('webcamVideo');
+            const canvas = document.getElementById('webcamCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 832;
+            canvas.height = 480;
+
+            let segBusy = false;  // prevent overlapping MediaPipe calls
+
+            // Capture every camera frame into local buffer
+            function captureFrame() {
+                if (!webcamCapturing || !webcamStream) return;
+                ctx.drawImage(video, 0, 0, 832, 480);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+                // Run segmentation asynchronously (skip if previous call still pending)
+                if (selfieSegmentation && !segBusy) {
+                    segBusy = true;
+                    selfieSegmentation.send({ image: video }).then(() => {
+                        segBusy = false;
+                    }).catch(() => { segBusy = false; });
+                }
+
+                // Only buffer frames that have a valid mask
+                if (latestMaskDataUrl) {
+                    webcamLocalBuffer.push({ frame: dataUrl, mask: latestMaskDataUrl });
+                    fpsCameraCount++;
+                }
+
+                video.requestVideoFrameCallback(captureFrame);
+            }
+            video.requestVideoFrameCallback(captureFrame);
+
+            // Push whatever frames we have to server every 50ms
+            pushInterval = setInterval(() => {
+                if (webcamLocalBuffer.length > 0) {
+                    const batch = webcamLocalBuffer;
+                    webcamLocalBuffer = [];
+                    socket.emit('webcam_block', batch);
+                }
+            }, 50);
+
+            // Start FPS display update
+            startFpsTracking();
+        }
+
+        function stopWebcamCapture() {
+            webcamCapturing = false;
+            if (pushInterval) {
+                clearInterval(pushInterval);
+                pushInterval = null;
+            }
+            stopFpsTracking();
+        }
+
+        function startFpsTracking() {
+            if (fpsInterval) return;
+            fpsCameraCount = 0;
+            fpsDisplayCount = 0;
+            fpsInterval = setInterval(() => {
+                document.getElementById('fpsCamera').textContent = fpsCameraCount;
+                document.getElementById('fpsDisplay').textContent = fpsDisplayCount;
+                if (fpsCameraCount > 0) {
+                    lastCameraFps = fpsCameraCount;
+                }
+                fpsCameraCount = 0;
+                fpsDisplayCount = 0;
+            }, 1000);
+        }
+
+        function stopFpsTracking() {
+            if (fpsInterval) {
+                clearInterval(fpsInterval);
+                fpsInterval = null;
+            }
+        }
+
+        // --- Generation functions ---
+
+        let isGenerating = false;
+
+        function submitPrompt() {
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) { alert('Please enter a prompt'); return; }
+            if (!webcamStream) { alert('Please start the camera first'); return; }
+
+            const btn = document.getElementById('submitPromptBtn');
+
+            if (isGenerating) {
+                // Update prompt mid-stream
+                btn.disabled = true;
+                btn.textContent = 'Wait 3s...';
+                socket.emit('update_prompt', { prompt: prompt });
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Submit Prompt';
+                }, 3000);
+            } else {
+                // Start new generation
+                frameBuffer = [];
+                currentFrameIndex = 0;
+                receiveCount = 0;
+                stopPlayback();
+                isGenerating = true;
+                isPaused = false;
+                btn.textContent = 'Submit Prompt';
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('stopBtn').textContent = 'Stop';
+                startTime = Date.now();
+
+                socket.emit('start_generation', {
+                    prompt: prompt,
+                    fps: lastCameraFps
+                });
+            }
+        }
+
+        let isPaused = false;
+
+        function togglePause() {
+            const btn = document.getElementById('stopBtn');
+            if (!isPaused) {
+                socket.emit('pause_generation');
+                stopWebcamCapture();
+                isPaused = true;
+                btn.textContent = 'Resume';
+            } else {
+                socket.emit('resume_generation');
+                startWebcamCapture();
+                isPaused = false;
+                btn.textContent = 'Stop';
+            }
+        }
+
+        function startPlayback() {
+            if (frameBuffer.length === 0) return;
+            isPlaying = true;
+            updatePlaybackTiming();
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            if (playbackInterval) { clearInterval(playbackInterval); playbackInterval = null; }
+        }
+
+        function updatePlaybackTiming() {
+            if (playbackInterval) clearInterval(playbackInterval);
+            if (isPlaying) {
+                const interval = 1000 / targetFps;
+                playbackInterval = setInterval(displayNextFrame, interval);
+            }
+        }
+
+        function displayNextFrame() {
+            if (currentFrameIndex >= frameBuffer.length) return;
+
+            const frameData = frameBuffer[currentFrameIndex];
+            const img = document.getElementById('videoFrame');
+            img.src = frameData.data;
+            img.style.display = 'block';
+            document.getElementById('placeholderText').style.display = 'none';
+
+            currentFrameIndex++;
+            fpsDisplayCount++;
+            updateBufferInfo();
+        }
+
+        function updateBufferInfo() {
+            document.getElementById('totalFrames').textContent = frameBuffer.length;
+            const elapsed = startTime ? ((Date.now() - startTime) / 1000).toFixed(1) : '0';
+            document.getElementById('elapsedTime').textContent = elapsed + 's';
+        }
+
+        function updateFrameInfo(text) {
+            document.getElementById('frameInfo').textContent = text;
+        }
+    </script>
+</body>
+</html>

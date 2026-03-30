@@ -9,6 +9,8 @@ import torch.nn.functional as F
 from einops import rearrange
 from torchvision.transforms import GaussianBlur
 
+from pdb import set_trace
+
 '''
 Utilities to improve prune masks
 '''
@@ -53,16 +55,23 @@ def cal_diffs(x1: torch.Tensor, x2: torch.Tensor, distance: str, patch_size=2) -
     diffs = diffs.reshape(B, 1, T, H//patch_size, W//patch_size)   #(B, 1, T, H/P, W/P)
     return diffs
 
-def median_blur(diffs: torch.Tensor, size=(3,3,3)) -> torch.Tensor:
+def median_blur(diffs: torch.Tensor, size=(3,3,3), causal=True) -> torch.Tensor:
         '''
         input:  B=1 C=1 T H W
         output: B=1 C=1 T H W
 
         '''
-        # C, T, H, W = diffs.shape[1:]
         device = diffs.device
         diffs = diffs.squeeze()  # First channel: [T, H/P, W/P]
-        result = median_filter(diffs.cpu().numpy(), mode='nearest', size=size)
+        diffs_np = diffs.cpu().numpy()
+        if causal and size[0] > 1:
+            # Pad temporal dim: (size[0]-1) on left, 0 on right
+            pad_t = size[0] - 1
+            diffs_np = np.pad(diffs_np, ((pad_t, 0), (0, 0), (0, 0)), mode='edge')
+            result = median_filter(diffs_np, mode='nearest', size=size)
+            result = result[pad_t:]  # remove temporal padding
+        else:
+            result = median_filter(diffs_np, mode='nearest', size=size)
         result = torch.from_numpy(result).to(device)
         return result.unsqueeze(0).unsqueeze(0)  # Output: [1, 1, T, H/P, H/P]
 
@@ -90,17 +99,43 @@ def morphology_operation(prune_mask: torch.Tensor, kernel_size: int = 3) -> torc
     result = result.to(device).unsqueeze(0).unsqueeze(0)
     return result 
 
-def dilation(mask: torch.Tensor, structure=(3,5,5)) -> torch.Tensor:
+def dilation(mask: torch.Tensor, structure=(3,5,5), causal=True) -> torch.Tensor:
     '''
     input:  B=1 C=1 T H W
     output: B=1 C=1 T H W
     '''
     device = mask.device
     mask = mask.squeeze()  # First channel: [T, H/P, W/P]
-    result = binary_dilation(mask.cpu().numpy(), structure=np.ones(structure))
+    struct = np.ones(structure)
+    if causal and len(structure) == 3 and structure[0] > 1:
+        # Zero out future timesteps (center is at structure[0]//2, zero everything after)
+        struct[structure[0]//2 + 1:, :, :] = 0
+    result = binary_dilation(mask.cpu().numpy(), structure=struct)
 
     result = torch.from_numpy(result).to(device)
     return result.unsqueeze(0).unsqueeze(0)  # Output: [1, 1, T, H/P, H/P]
+
+def enforce_min_true_ratio(prune_mask: torch.Tensor, min_ratio: float, dilation_structure=(1, 3, 3)) -> torch.Tensor:
+    '''
+    Ensures at least min_ratio of tokens in prune_mask are True by iteratively dilating.
+    If prune_mask is all False, the constraint is skipped.
+
+    input:  B=1 C=1 T H W
+    output: B=1 C=1 T H W
+    '''
+    T = prune_mask.shape[2]
+    tokens_per_frame = prune_mask[:, :, 0].numel()
+    spatial_structure = (dilation_structure[1], dilation_structure[2])
+
+    for t in range(T):
+        frame = prune_mask[:, :, t:t+1]  # (1, 1, 1, H, W)
+        if not frame.any():
+            continue
+        while frame.sum().item() / tokens_per_frame < min_ratio:
+            frame = dilation(frame, structure=spatial_structure)
+        prune_mask[:, :, t:t+1] = frame
+
+    return prune_mask
 
 def get_gaussian_kernel3d(kernel_size, sigma, is_causal=False, device='cuda'):
     if isinstance(kernel_size, int):
@@ -195,12 +230,17 @@ def bound_diff(prune_mask, x, distance, threshold, patch_size=2) -> torch.Tensor
 Functions for pruning and unpruning
 
 '''
-def rlt_prune(x: Tensor, distance: str, patch_dims: Tuple[int, int, int] = (1, 2, 2), drop_param: float = 0.1, drop_param2 = None) -> dict:
+def rlt_prune(x: Tensor, distance: str, patch_dims: Tuple[int, int, int] = (1, 2, 2), drop_param: float = 0.1, drop_param2 = None, min_true_ratio: float = None, state: dict = None):
     '''
     x: shape (B, T, C, H, W)
+    state: dict with 'prev_frame' (B, C, 1, H, W) for streaming block-wise operation.
+           None for batch mode (backward compatible).
+    Returns:
+        prune_mask, new_state  (when state is not None)
+        prune_mask             (when state is None, backward compatible)
     '''
-    
-    
+
+
     B, T, C, H, W= x.shape
     temporal_dim, patch_size = patch_dims[0], patch_dims[1:]
 
@@ -211,25 +251,44 @@ def rlt_prune(x: Tensor, distance: str, patch_dims: Tuple[int, int, int] = (1, 2
     assert H % patch_size[0] == 0, "Height must be divisible by patch_size[0]"
     assert W % patch_size[1] == 0, "Width must be divisible by patch_size[1]"
 
-    x = x.type(torch.float32) 
+    x = x.type(torch.float32)
     x = x.transpose(1, 2)  # (B, C, T, H, W) so we can process T H W together
 
+    # Prepend previous block's last frame for boundary diff (streaming mode)
+    has_prev = state is not None and state.get('prev_frame') is not None
+    if has_prev:
+        x_full = torch.cat([state['prev_frame'], x], dim=2)  # (B, C, T+1, H, W)
+    else:
+        x_full = x
+
+    # Save last frame for next block
+    new_state = {'prev_frame': x[:, :, -1:].clone()}
+
     # Compare "front" of first token to "back" of second token
-    # change diffs shape to B=1, C=1, T, H, W 
-    raw_diffs = cal_diffs(x[:, :, (2*temporal_dim-1)::temporal_dim], x[:, :, :-temporal_dim:temporal_dim], distance, patch_size=patch_size[0])  # (B, C, T-1, H, W)
+    # change diffs shape to B=1, C=1, T, H, W
+    raw_diffs = cal_diffs(x_full[:, :, (2*temporal_dim-1)::temporal_dim], x_full[:, :, :-temporal_dim:temporal_dim], distance, patch_size=patch_size[0])
     diffs = median_blur(raw_diffs)
     if distance == "L1_gaussian":
-        diffs = gaussian_blur_3D(diffs, kernel_size=(3, 3, 3), sigma=((1.5,1.5,1.5)), is_causal=True) 
-    
+        diffs = gaussian_blur_3D(diffs, kernel_size=(3, 3, 3), sigma=((1.5,1.5,1.5)), is_causal=True)
+
     # Thresholding
     prune_mask = (diffs > drop_param)
-    if drop_param2 is not None:
-        prune_mask = bound_diff(prune_mask, x, distance, drop_param2, patch_size=2)
-    
+    # Skip bound_diff in streaming mode
+    if drop_param2 is not None and state is None:
+        prune_mask = bound_diff(prune_mask, x_full, distance, drop_param2, patch_size=2)
+
     prune_mask = median_blur(prune_mask.float()).bool()
     prune_mask = morphology_operation(prune_mask)
     prune_mask = dilation(prune_mask)
-   
+    if min_true_ratio is not None:
+        T_mask = prune_mask.shape[2]
+        tokens_per_frame = prune_mask[:, :, 0].numel()
+        before_pcts = [prune_mask[:, :, t].sum().item() / tokens_per_frame * 100 for t in range(T_mask)][:15]
+        print(f"[enforce_min_true_ratio] Before: {[f'{p:.1f}%' for p in before_pcts]}")
+        prune_mask = enforce_min_true_ratio(prune_mask, min_true_ratio)
+        after_pcts = [prune_mask[:, :, t].sum().item() / tokens_per_frame * 100 for t in range(T_mask)][:15]
+        print(f"[enforce_min_true_ratio] After:  {[f'{p:.1f}%' for p in after_pcts]}")
+
     # append first mask frame and reshaping
     first_frame = torch.full_like(prune_mask[:, :, 0:1], bool(True))
     prune_mask = torch.cat([first_frame, prune_mask], dim=2)
@@ -238,9 +297,16 @@ def rlt_prune(x: Tensor, distance: str, patch_dims: Tuple[int, int, int] = (1, 2
                             .repeat_interleave(patch_size[0], dim=3) \
                             .repeat_interleave(patch_size[1], dim=4) \
                             .transpose(1, 2)
+
+    # Trim prepended frame's contribution (streaming mode)
+    if has_prev:
+        prune_mask = prune_mask[:, 1:]
+
+    if state is not None:
+        return prune_mask, new_state
     return prune_mask
 
-def unprune(kept_tokens, prune_mask, tubelet_shape, prev_cache=None, check_merge_place=False) -> torch.Tensor:
+def unprune(kept_tokens, prune_mask, tubelet_shape, prev_cache=None, check_merge_place=True, use_prev_cache_only=True) -> torch.Tensor:
     """
     Recover the pruned kept_tokens by substituting the kept token with the pruned token.
     
@@ -286,24 +352,30 @@ def unprune(kept_tokens, prune_mask, tubelet_shape, prev_cache=None, check_merge
     # 2. Fill in the sel_token of unpruned with kept_tokens.
     unpruned[prune_mask] = kept_tokens[~kept_tokens.isnan()]
     # 3. Fill in the un sel_token with the unpruned's (temporally) previous tubelet.
-    for i in range(unpruned.shape[0]):
-        if check_merge_place:
-            if i == 0:
-                if prev_cache is None:
-                    continue
+    if use_prev_cache_only:
+        # Use prev_cache for all frames; if None, use the first frame (unpruned[0])
+        fill = prev_cache if prev_cache is not None else unpruned[0]
+        for i in range(unpruned.shape[0]):
+            unpruned[i] = torch.where(prune_mask[i], unpruned[i], fill if not check_merge_place else 0)
+    else:
+        for i in range(unpruned.shape[0]):
+            if check_merge_place:
+                if i == 0:
+                    if prev_cache is None:
+                        continue
+                    else:
+                        unpruned[i] = torch.where(prune_mask[i], unpruned[i], 0)
                 else:
                     unpruned[i] = torch.where(prune_mask[i], unpruned[i], 0)
+
             else:
-                unpruned[i] = torch.where(prune_mask[i], unpruned[i], 0)
-                              
-        else: 
-            if i == 0:
-                if prev_cache is None:
-                    continue
+                if i == 0:
+                    if prev_cache is None:
+                        continue
+                    else:
+                        unpruned[i] = torch.where(prune_mask[i], unpruned[i], prev_cache)
                 else:
-                    unpruned[i] = torch.where(prune_mask[i], unpruned[i], prev_cache)
-            else:
-                unpruned[i] = torch.where(prune_mask[i], unpruned[i], unpruned[i-1])
+                    unpruned[i] = torch.where(prune_mask[i], unpruned[i], unpruned[i-1])
             
     #4. reshape the unpruned to the original shape (t, h ,w , C, p0, p1, p2) -> (B=1, (t p0), C, (h p1), (w p2)).
     prev_cache = unpruned[-1].clone().detach()
