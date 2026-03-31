@@ -1,4 +1,4 @@
-<h1 align="center">Training-Free Latent Inter-frame Pruning with Attention Recovery (LIPAR)</h1>
+<h1 align="center">Streaming Latent Inter-frame Pruning with Attention Recovery (Streaming LIPAR)</h1>
 
 <p align="center">
   <a href="https://sites.google.com/utexas.edu/dennismenn/about">Dennis Menn</a><sup>1</sup> ·
@@ -28,7 +28,7 @@
   <tr>
     <td colspan="2" align="center">
       <a href="docs/static/images/comparisons/edited.mp4">
-        <img src="docs/static/images/comparisons/edited.gif" width="600" alt="Edited comparison video preview" />
+        <img src="docs/static/images/comparisons/github_demo.gif" width="600" alt="Edited comparison video preview" />
       </a>
     </td>
   </tr>
@@ -41,19 +41,21 @@
 
 Latent Inter-frame Pruning with Attention Recovery (LIPAR) is a **training-free** acceleration framework for conditioned video generation using diffusion transformers. It exploits temporal redundancy in latent features to avoid re-editing unchanged patches while preserving visual quality through an **Attention Recovery** mechanism.
 
-LIPAR consists of three parts:
+LIPAR consists of three key components:
 1. **Latent Inter-frame Pruning**: Prune unchanged latent patches.
-2. **Attention Recovery**: reduce train-inference mismatch caused by pruning.
-3. **Restoration**: For decoding, recover full latent dimensions after denoising.
+2. **Attention Recovery**: Reduce train-inference mismatch caused by pruning.
+3. **Restoration**: Recover full latent dimensions after denoising for decoding.
 
-Empirically, LIPAR improves average video editing throughput by **1.53×** (from **12.6 FPS** to **19.3 FPS** on RTX 4090), reduces GPU memory usage, while preserving visual quality on selected DAVIS 2017 videos.
+> **Note:** **Streaming LIPAR** is a separate work that extends LIPAR for real-time video editing. For the original LIPAR paper, see the `lipar` branch.
+
+Empirically, Streaming LIPAR improves average video editing throughput by **~2×** and can achieve up to 20 FPS for FP16 4-step Self-Forcing model.
 
 ## Requirements
 - NVIDIA GPU with at least 18GB memory (RTX 4090, A6000 tested)
 - Linux
 - 32GB RAM
 
-Other hardware may work but is not officially tested.
+Insufficient RAM can be supplemented with a swap file. Other hardware may work but is not officially tested.
 
 ## Installation
 
@@ -85,34 +87,22 @@ hf download Wan-AI/Wan2.1-T2V-1.3B --local-dir wan_models/Wan2.1-T2V-1.3B
 hf download gdhe17/Self-Forcing checkpoints/self_forcing_dmd.pt --local-dir .
 ```
 
-### 2) Preprocess source videos
-
-Before the video editing stage, resize the source videos:
+### 2) Run real-time video editing
 
 ```bash
-python3 data/resize_video.py <source_video_dir> <output_dir>
+python3 demo.py
 ```
 
-### 3) Run LIPAR inference
 
-```bash
-python3 inference.py --config_path configs/self_forcing_dmd.yaml \
-  --checkpoint_path checkpoints/self_forcing_dmd.pt \
-  --data_path data/davis_prompt.json \
-  --output_folder outputs/lipar \
-  --use_lipar
-```
-
-Notes:
-- For original Self-Forcing inference, remove the `--use_lipar` flag.
+**Notes:**
 - Long, detailed prompts generally perform better.
-- TAE weights are from https://github.com/madebyollin/taehv
+- TAE weights are from [taehv](https://github.com/madebyollin/taehv).
 
 ---
 
 ## Important Files for LIPAR
 
-- `inference.py`: main inference entry point
+- `demo.py`: main video editing loop
 - `src/wan/modules/causal_model.py`: causal diffusion transformer with Attention Recovery
 - `src/utils/rlt_prune.py`: Latent Inter-frame pruning and token restoration utilities
 - `src/pipeline/causal_inference.py`: denoising loop and cache orchestration
@@ -129,10 +119,10 @@ This codebase is built on top of:
 
 ## Citation
 
-If you find this repository useful, please cite the paper. 
+If you find this repository useful, please cite the paper.
 
 ```
-@article{{menn2026trainingfreelatentinterframepruning,
+@article{menn2026trainingfreelatentinterframepruning,
   title={Training-free Latent Inter-Frame Pruning with Attention Recovery},
   author={Dennis Menn and Yuedong Yang and Bokun Wang and Xiwen Wei and Mustafa Munir and Feng Liang and Radu Marculescu and Chenfeng Xu and Diana Marculescu},
   journal={arXiv preprint arXiv:2603.05811},
