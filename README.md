@@ -32,12 +32,7 @@
       </a>
     </td>
   </tr>
-  <tr>
-    <td width="50%" align="center"><strong>Self-forcing (GPU: 20.7 GB)</strong></td>
-    <td width="50%" align="center"><strong>LIPAR (GPU: 16.6 GB)</strong></td>
-  </tr>
 </table>
-<p align="center">throughput/memory evaluated on RTX 4090</p>
 
 Latent Inter-frame Pruning with Attention Recovery (LIPAR) is a **training-free** acceleration framework for conditioned video generation using diffusion transformers. It exploits temporal redundancy in latent features to avoid re-editing unchanged patches while preserving visual quality through an **Attention Recovery** mechanism.
 
